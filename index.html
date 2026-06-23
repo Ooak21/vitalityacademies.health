@@ -49,8 +49,11 @@
     #hero .hero-stage{position:static !important;height:auto !important;display:block;overflow:visible}
     #hero .hero-inner{display:block;min-height:200vh;padding-top:104px;padding-bottom:0}
     #hero .hero-copy{margin-bottom:5vh}
-    #hero .reveal-box{position:sticky;top:14vh}
+    #hero .reveal-box{position:sticky;top:calc(50vh - 140px)}   /* center the 280px box */
     #reveal-cue{display:none}
+  }
+  @media (min-width:640px) and (max-width:1023px){
+    #hero .reveal-box{top:calc(50vh - 180px)}                   /* center the 360px box */
   }
 </style>
 </head>
@@ -312,8 +315,9 @@
     if(isMobile && heroInner && revealBox){
       var vh=window.innerHeight;
       var traveled=-heroInner.getBoundingClientRect().top;
-      var stickStart=revealBox.offsetTop - 0.14*vh;
-      var stickEnd=heroInner.offsetHeight - (0.14*vh + revealBox.offsetHeight);
+      var stickTop=(vh - revealBox.offsetHeight)/2;   // box centered vertically when locked
+      var stickStart=revealBox.offsetTop - stickTop;
+      var stickEnd=heroInner.offsetHeight - (stickTop + revealBox.offsetHeight);
       var span=Math.max(1, stickEnd-stickStart);
       return Math.max(0, Math.min(1, (traveled-stickStart)/span));
     }
