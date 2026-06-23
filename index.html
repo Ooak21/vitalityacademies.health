@@ -93,7 +93,9 @@
       </div>
     </div>
     <div class="relative">
-      <div class="ph rounded-3xl h-[360px] md:h-[440px]">Facility / community photo</div>
+      <div class="rounded-3xl overflow-hidden h-[360px] md:h-[480px] bg-[#070b10] shadow-[0_34px_80px_-34px_rgba(16,24,40,0.45)]">
+        <canvas id="reveal-canvas" class="w-full h-full block"></canvas>
+      </div>
     </div>
   </div>
 </header>
@@ -266,6 +268,37 @@
     var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:0.12});
     els.forEach(function(el){io.observe(el);});
   } else { els.forEach(function(el){el.classList.add('in');}); }
+})();
+</script>
+
+<!-- hero logo-reveal: scroll-scrubbed canvas frame sequence inside the square -->
+<script>
+(function(){
+  var canvas=document.getElementById('reveal-canvas'); if(!canvas) return;
+  var ctx=canvas.getContext('2d');
+  var FRAME_COUNT=73;
+  var frameUrl=function(n){ return 'assets/hero/f'+String(n).padStart(3,'0')+'.jpg'; };
+  var frames=new Array(FRAME_COUNT);
+  function sizeCanvas(){ var dpr=Math.min(window.devicePixelRatio||1,2.5); var r=canvas.getBoundingClientRect(); canvas.width=Math.max(1,Math.round(r.width*dpr)); canvas.height=Math.max(1,Math.round(r.height*dpr)); }
+  function coverDraw(img,alpha){ if(!img||!img.naturalWidth)return; ctx.globalAlpha=(alpha==null)?1:alpha; var cw=canvas.width,ch=canvas.height,ir=img.naturalWidth/img.naturalHeight,cr=cw/ch,dw,dh; if(cr>ir){dw=cw;dh=cw/ir;}else{dh=ch;dw=ch*ir;} ctx.drawImage(img,(cw-dw)/2,(ch-dh)/2,dw,dh); ctx.globalAlpha=1; }
+  function loaded(i){ var f=frames[i]; return (f&&f.complete&&f.naturalWidth)?f:null; }
+  function nearest(idx){ for(var d=0;d<FRAME_COUNT;d++){ var a=frames[idx-d],b=frames[idx+d]; if(a&&a.complete&&a.naturalWidth)return a; if(b&&b.complete&&b.naturalWidth)return b; } return null; }
+  // scroll over the first ~screen drives the reveal (frame 0 at top -> resolved logo as you scroll)
+  function progress(){ return Math.max(0,Math.min(1, window.scrollY/(window.innerHeight*0.9))); }
+  function drawAt(p){
+    var exact=Math.max(0,Math.min(FRAME_COUNT-1,p*(FRAME_COUNT-1))), i=Math.floor(exact), frac=exact-i;
+    var a=loaded(i)||nearest(i), b=loaded(Math.min(FRAME_COUNT-1,i+1));
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(a) coverDraw(a,1);
+    if(b&&frac>0.001) coverDraw(b,frac);
+  }
+  var targetP=0,viewP=0,looping=false;
+  function loop(){ viewP+=(targetP-viewP)*0.16; if(Math.abs(targetP-viewP)<0.0006){viewP=targetP;looping=false;drawAt(viewP);return;} drawAt(viewP); requestAnimationFrame(loop); }
+  function kick(){ if(!looping){looping=true;requestAnimationFrame(loop);} }
+  window.addEventListener('scroll',function(){ targetP=progress(); kick(); },{passive:true});
+  window.addEventListener('resize',function(){ sizeCanvas(); drawAt(viewP); });
+  for(var k=0;k<FRAME_COUNT;k++){ (function(k){ var img=new Image(); img.decoding='async'; img.onload=function(){ if(k===0){sizeCanvas();drawAt(viewP);} }; img.src=frameUrl(k+1); frames[k]=img; })(k); }
+  sizeCanvas(); targetP=viewP=progress(); drawAt(viewP);
 })();
 </script>
 </body>
