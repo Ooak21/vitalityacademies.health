@@ -41,6 +41,13 @@
   @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
   .ph{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;background:#f1f3f7;border:1px dashed #cfd6e0;text-align:center;padding:1rem}
   ::selection{background:rgba(10,108,245,0.25)}
+  /* Mobile: do NOT pin the hero (the screen-lock hides the animation). Un-pin and let the
+     square auto-play the reveal so it plays cleanly inline. */
+  @media (max-width:1023px){
+    #hero{height:auto !important}
+    #hero .hero-stage{position:static !important;height:auto !important;display:block;overflow:visible;padding-top:104px;padding-bottom:40px}
+    #reveal-cue{display:none}
+  }
 </style>
 </head>
 <body>
@@ -81,7 +88,7 @@
 
 <!-- HERO (pinned scroll-scrub: the page locks until the logo reveal completes) -->
 <section id="hero" class="relative" style="height:220vh">
-  <div class="sticky top-0 h-screen flex items-center overflow-hidden">
+  <div class="hero-stage sticky top-0 h-screen flex items-center overflow-hidden">
     <div class="glow-blue absolute inset-0"></div>
     <div class="relative max-w-7xl mx-auto px-6 md:px-8 grid lg:grid-cols-2 gap-10 md:gap-12 items-center w-full pt-24 md:pt-20 pb-8">
       <div>
@@ -141,7 +148,7 @@
         <p class="text-[#4b5563] text-[14px] leading-relaxed">Training that protects lean mass and fits where you are, guided by your fitness coordinator.</p>
       </div>
       <div class="reveal lift glass rounded-2xl border border-[#0a6cf5]/30 p-6 bg-[#0a6cf5]/[0.04] flex flex-col">
-        <h3 class="font-display text-xl font-semibold mb-2">The PhD Reading List</h3>
+        <h3 class="font-display text-xl font-semibold mb-2">The Personal Health Degree Reading List</h3>
         <p class="text-[#4b5563] text-[14px] leading-relaxed flex-1">The curated articles and guides behind the curriculum, written by the Vitality team.</p>
         <a href="https://vitalityweightloss.health/guides/" class="inline-flex items-center gap-1.5 font-semibold text-[#0a6cf5] mt-4 text-sm hover:gap-2.5 transition-all">Open the reading list <span aria-hidden="true">&rarr;</span></a>
       </div>
@@ -307,13 +314,36 @@
     if(b&&frac>0.001) coverDraw(b,frac);
     if(cue) cue.style.opacity = p>0.04 ? '0' : '1';
   }
-  var targetP=0,viewP=0,looping=false;
-  function loop(){ viewP+=(targetP-viewP)*0.16; if(Math.abs(targetP-viewP)<0.0006){viewP=targetP;looping=false;drawAt(viewP);return;} drawAt(viewP); requestAnimationFrame(loop); }
-  function kick(){ if(!looping){looping=true;requestAnimationFrame(loop);} }
-  window.addEventListener('scroll',function(){ targetP=progress(); kick(); },{passive:true});
-  window.addEventListener('resize',function(){ sizeCanvas(); drawAt(viewP); });
-  for(var k=0;k<FRAME_COUNT;k++){ (function(k){ var img=new Image(); img.decoding='async'; img.onload=function(){ if(k===0){sizeCanvas();drawAt(viewP);} }; img.src=frameUrl(k+1); frames[k]=img; })(k); }
-  sizeCanvas(); targetP=viewP=progress(); drawAt(viewP);
+  var isMobile = window.matchMedia('(max-width:1023px)').matches;
+  var started=false;
+  function start(){
+    if(started) return; started=true;
+    if(isMobile){
+      // MOBILE: no pin (CSS un-pins the stage). Auto-play the reveal in place so it shows
+      // clearly without locking the screen. Only animate while the hero is on screen.
+      var idx=0, last=0;
+      (function ap(ts){
+        var r=heroEl.getBoundingClientRect();
+        if(r.bottom>0 && r.top<window.innerHeight && ts-last>72){
+          last=ts; idx=(idx+1)%FRAME_COUNT;
+          var f=loaded(idx)||nearest(idx);
+          if(f){ ctx.clearRect(0,0,canvas.width,canvas.height); coverDraw(f,1); }
+        }
+        requestAnimationFrame(ap);
+      })(0);
+    } else {
+      // DESKTOP: pinned scroll-scrub.
+      var targetP=0,viewP=0,looping=false;
+      function loop(){ viewP+=(targetP-viewP)*0.16; if(Math.abs(targetP-viewP)<0.0006){viewP=targetP;looping=false;drawAt(viewP);return;} drawAt(viewP); requestAnimationFrame(loop); }
+      function kick(){ if(!looping){looping=true;requestAnimationFrame(loop);} }
+      window.addEventListener('scroll',function(){ targetP=progress(); kick(); },{passive:true});
+      window.addEventListener('resize',function(){ sizeCanvas(); drawAt(progress()); });
+      targetP=viewP=progress(); drawAt(viewP);
+    }
+  }
+  for(var k=0;k<FRAME_COUNT;k++){ (function(k){ var img=new Image(); img.decoding='async'; img.onload=function(){ if(k===0){ sizeCanvas(); start(); } }; img.src=frameUrl(k+1); frames[k]=img; })(k); }
+  sizeCanvas();
+  if(loaded(0)) start();
 })();
 </script>
 </body>
