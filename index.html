@@ -331,16 +331,16 @@
     canvas.width  = Math.max(1, Math.round(r.width*dpr));
     canvas.height = Math.max(1, Math.round(r.height*dpr));
   }
-  // contain: the whole square reveal stays visible, centered, dark stage fills the rest.
-  function draw(img, alpha){
-    if(!img||!img.naturalWidth) return;
-    ctx.globalAlpha = (alpha==null)?1:alpha;
+  // fit box: cover=true fills the canvas (overflow), cover=false fits fully inside (contain).
+  function fit(img, cover){
     var cw=canvas.width, ch=canvas.height;
     var ir=img.naturalWidth/img.naturalHeight, cr=cw/ch, dw, dh;
-    if(cr>ir){ dh=ch; dw=ch*ir; } else { dw=cw; dh=cw/ir; }
-    ctx.drawImage(img,(cw-dw)/2,(ch-dh)/2,dw,dh);
-    ctx.globalAlpha = 1;
+    var byHeight = cover ? (cr<ir) : (cr>ir);
+    if(byHeight){ dh=ch; dw=ch*ir; } else { dw=cw; dh=cw/ir; }
+    return {dx:(cw-dw)/2, dy:(ch-dh)/2, dw:dw, dh:dh};
   }
+  function containDraw(img, alpha){ if(!img||!img.naturalWidth)return; ctx.globalAlpha=(alpha==null)?1:alpha; var f=fit(img,false); ctx.drawImage(img,f.dx,f.dy,f.dw,f.dh); ctx.globalAlpha=1; }
+  function coverDraw(img, alpha){ if(!img||!img.naturalWidth)return; ctx.globalAlpha=(alpha==null)?1:alpha; var f=fit(img,true); ctx.drawImage(img,f.dx,f.dy,f.dw,f.dh); ctx.globalAlpha=1; }
   function loaded(i){ var f=frames[i]; return (f&&f.complete&&f.naturalWidth)?f:null; }
   function nearestLoaded(idx){
     for(var d=0; d<FRAME_COUNT; d++){
@@ -361,8 +361,11 @@
     var a = loaded(i) || nearestLoaded(i);
     var b = loaded(Math.min(FRAME_COUNT-1, i+1));
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    if(a) draw(a,1);
-    if(b && frac>0.001) draw(b,frac);
+    // blurred, dimmed cover of the current frame fills the side gaps seamlessly (no black bars)
+    if(a){ try{ ctx.filter='blur(38px) brightness(.5)'; }catch(e){} coverDraw(a,1); ctx.filter='none'; }
+    // crisp full logo on top, centered, crossfaded into the next frame
+    if(a) containDraw(a,1);
+    if(b && frac>0.001) containDraw(b,frac);
     heroTag.classList.toggle('show', p>=TAG_SHOW_AT);
     if(heroCue) heroCue.classList.toggle('gone', p>0.03);
     nav.classList.toggle('over-hero', heroEl.getBoundingClientRect().bottom > window.innerHeight*0.55);
