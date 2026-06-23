@@ -79,26 +79,32 @@
   </div>
 </nav>
 
-<!-- HERO -->
-<header class="relative overflow-hidden pt-[124px] pb-20 md:pb-28">
-  <div class="glow-blue absolute inset-0 -z-10"></div>
-  <div class="max-w-7xl mx-auto px-6 md:px-8 grid lg:grid-cols-2 gap-12 items-center">
-    <div>
-      <span class="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.18em] text-[#0a6cf5] uppercase bg-[#0a6cf5]/10 rounded-full px-3 py-1.5">The Vitality Resource Hub</span>
-      <h1 class="font-display text-4xl md:text-6xl font-semibold tracking-[-2px] mt-5 mb-5 leading-[1.05]">Your home base for <span class="text-[#0a6cf5]">lasting change</span>.</h1>
-      <p class="text-[#4b5563] text-lg max-w-xl leading-relaxed">Vitality Academies is where every Vitality patient comes to learn, train, and transform. Your education, your plans, and the people behind you, all in one place. Weight loss without understanding is temporary. Here, you build the knowledge that makes it permanent.</p>
-      <div class="flex flex-wrap gap-3 mt-8">
-        <a href="https://vitalityweightloss.health/portal-login.html" class="inline-flex items-center rounded-full bg-[#0a6cf5] text-white font-semibold px-7 py-3.5 hover:bg-[#0856c8] transition-colors">Enter the portal</a>
-        <a href="#learning" class="inline-flex items-center rounded-full border border-[#e6e9ee] text-[#16201d] font-semibold px-7 py-3.5 hover:bg-[#f1f3f7] transition-colors">Explore the curriculum</a>
+<!-- HERO (pinned scroll-scrub: the page locks until the logo reveal completes) -->
+<section id="hero" class="relative" style="height:220vh">
+  <div class="sticky top-0 h-screen flex items-center overflow-hidden">
+    <div class="glow-blue absolute inset-0"></div>
+    <div class="relative max-w-7xl mx-auto px-6 md:px-8 grid lg:grid-cols-2 gap-10 md:gap-12 items-center w-full pt-24 md:pt-20 pb-8">
+      <div>
+        <span class="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.18em] text-[#0a6cf5] uppercase bg-[#0a6cf5]/10 rounded-full px-3 py-1.5">The Vitality Resource Hub</span>
+        <h1 class="font-display text-4xl md:text-6xl font-semibold tracking-[-2px] mt-5 mb-5 leading-[1.05]">Your home base for <span class="text-[#0a6cf5]">lasting change</span>.</h1>
+        <p class="text-[#4b5563] text-base md:text-lg max-w-xl leading-relaxed">Vitality Academies is where every Vitality patient comes to learn, train, and transform. Your education, your plans, and the people behind you, all in one place. Weight loss without understanding is temporary. Here, you build the knowledge that makes it permanent.</p>
+        <div class="flex flex-wrap gap-3 mt-7">
+          <a href="https://vitalityweightloss.health/portal-login.html" class="inline-flex items-center rounded-full bg-[#0a6cf5] text-white font-semibold px-7 py-3.5 hover:bg-[#0856c8] transition-colors">Enter the portal</a>
+          <a href="#learning" class="inline-flex items-center rounded-full border border-[#e6e9ee] text-[#16201d] font-semibold px-7 py-3.5 hover:bg-[#f1f3f7] transition-colors">Explore the curriculum</a>
+        </div>
       </div>
-    </div>
-    <div class="relative">
-      <div class="rounded-3xl overflow-hidden h-[360px] md:h-[480px] bg-[#070b10] shadow-[0_34px_80px_-34px_rgba(16,24,40,0.45)]">
-        <canvas id="reveal-canvas" class="w-full h-full block"></canvas>
+      <div class="relative">
+        <div class="rounded-3xl overflow-hidden h-[280px] sm:h-[360px] md:h-[480px] bg-[#070b10] shadow-[0_34px_80px_-34px_rgba(16,24,40,0.45)]">
+          <canvas id="reveal-canvas" class="w-full h-full block"></canvas>
+        </div>
+        <div id="reveal-cue" class="absolute left-1/2 -translate-x-1/2 -bottom-9 flex flex-col items-center gap-1.5 text-[10px] tracking-[0.22em] uppercase text-[#9aa6b5] transition-opacity duration-300">
+          <span>Scroll to reveal</span>
+          <span class="w-1 h-1 rounded-full bg-[#0a6cf5] animate-bounce"></span>
+        </div>
       </div>
     </div>
   </div>
-</header>
+</section>
 
 <!-- THE LEARNING CENTER / PhD -->
 <section id="learning" class="section py-24 border-t border-[#e6e9ee] bg-[#fbfcfe]">
@@ -276,6 +282,8 @@
 (function(){
   var canvas=document.getElementById('reveal-canvas'); if(!canvas) return;
   var ctx=canvas.getContext('2d');
+  var heroEl=document.getElementById('hero');
+  var cue=document.getElementById('reveal-cue');
   var FRAME_COUNT=73;
   var frameUrl=function(n){ return 'assets/hero/f'+String(n).padStart(3,'0')+'.jpg'; };
   var frames=new Array(FRAME_COUNT);
@@ -283,14 +291,21 @@
   function coverDraw(img,alpha){ if(!img||!img.naturalWidth)return; ctx.globalAlpha=(alpha==null)?1:alpha; var cw=canvas.width,ch=canvas.height,ir=img.naturalWidth/img.naturalHeight,cr=cw/ch,dw,dh; if(cr>ir){dw=cw;dh=cw/ir;}else{dh=ch;dw=ch*ir;} ctx.drawImage(img,(cw-dw)/2,(ch-dh)/2,dw,dh); ctx.globalAlpha=1; }
   function loaded(i){ var f=frames[i]; return (f&&f.complete&&f.naturalWidth)?f:null; }
   function nearest(idx){ for(var d=0;d<FRAME_COUNT;d++){ var a=frames[idx-d],b=frames[idx+d]; if(a&&a.complete&&a.naturalWidth)return a; if(b&&b.complete&&b.naturalWidth)return b; } return null; }
-  // scroll over the first ~screen drives the reveal (frame 0 at top -> resolved logo as you scroll)
-  function progress(){ return Math.max(0,Math.min(1, window.scrollY/(window.innerHeight*0.9))); }
+  // pinned section: scroll within the tall #hero drives the reveal (page is locked by the
+  // sticky stage until progress hits 1, then it releases and the page scrolls on).
+  function progress(){
+    if(!heroEl) return 0;
+    var total=heroEl.offsetHeight-window.innerHeight;
+    var traveled=Math.max(0,-heroEl.getBoundingClientRect().top);
+    return total>0 ? Math.max(0,Math.min(1, traveled/total)) : 0;
+  }
   function drawAt(p){
     var exact=Math.max(0,Math.min(FRAME_COUNT-1,p*(FRAME_COUNT-1))), i=Math.floor(exact), frac=exact-i;
     var a=loaded(i)||nearest(i), b=loaded(Math.min(FRAME_COUNT-1,i+1));
     ctx.clearRect(0,0,canvas.width,canvas.height);
     if(a) coverDraw(a,1);
     if(b&&frac>0.001) coverDraw(b,frac);
+    if(cue) cue.style.opacity = p>0.04 ? '0' : '1';
   }
   var targetP=0,viewP=0,looping=false;
   function loop(){ viewP+=(targetP-viewP)*0.16; if(Math.abs(targetP-viewP)<0.0006){viewP=targetP;looping=false;drawAt(viewP);return;} drawAt(viewP); requestAnimationFrame(loop); }
