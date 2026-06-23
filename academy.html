@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Academy · Vitality Academies</title>
+<meta name="robots" content="noindex">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0b1220;--muted:#5b6573;--soft:#8a93a3;--line:#e9edf3;--accent:#0a6cf5;--accent2:#3b8cff;--green:#1f9d57;--gold:#caa23a}
+  *{-webkit-tap-highlight-color:transparent}
+  body{font-family:'Inter',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;color:var(--ink);
+    background:radial-gradient(1100px 520px at 80% -160px,#e7f0ff 0%,rgba(231,240,255,0) 58%),linear-gradient(180deg,#f8fafc 0%,#eef2f7 100%);background-attachment:fixed}
+  .font-display{font-family:'Montserrat','Inter',sans-serif;letter-spacing:-.02em}
+  .card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 1px 2px rgba(16,24,40,.04),0 16px 36px -22px rgba(16,24,40,.18)}
+  .ch{transition:transform .18s cubic-bezier(.23,1,.32,1),box-shadow .18s,border-color .18s}
+  .ch:hover{transform:translateY(-3px);border-color:#cfe0ff;box-shadow:0 1px 2px rgba(16,24,40,.04),0 28px 52px -26px rgba(10,108,245,.32)}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+  .cap{font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--soft)}
+  .grad{background:linear-gradient(135deg,var(--accent),var(--accent2))}
+  .seg{font-variant-numeric:tabular-nums}
+  /* tabs */
+  .tab{display:inline-flex;align-items:center;gap:8px;padding:15px 2px;font-weight:600;font-size:14px;color:#6b7280;border-bottom:2px solid transparent;transition:color .15s;white-space:nowrap}
+  .tab svg{width:16px;height:16px;opacity:.85}
+  .tab:hover{color:var(--ink)}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .chip{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 6px;border-radius:999px;background:#eef0f4;color:#6b7280;font-size:11px;font-weight:700}
+  .tab.active .chip{background:#e2edff;color:var(--accent)}
+  /* segmented answer buttons */
+  .seg-btn{border:1px solid var(--line);background:#fff;border-radius:11px;padding:8px 13px;font-size:13px;color:var(--ink);cursor:pointer;transition:all .12s;font-weight:500}
+  .seg-btn:hover{border-color:var(--accent)}
+  .seg-btn.sel{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 8px 18px -10px rgba(10,108,245,.7)}
+  /* tracker */
+  .trk{width:40px;height:40px;border-radius:11px;border:1px solid var(--line);background:#fff;font-size:13px;color:var(--soft);cursor:pointer;transition:all .12s;font-weight:600}
+  .trk:hover{border-color:var(--accent)}
+  .trk.on{background:linear-gradient(135deg,#1f9d57,#43c97f);border-color:transparent;color:#fff;box-shadow:0 8px 16px -8px rgba(31,157,87,.6)}
+  /* icon tile + medallion */
+  .tile{display:flex;align-items:center;justify-content:center;border-radius:13px}
+  .tile svg{width:20px;height:20px}
+  .medal{position:relative;width:54px;height:54px;border-radius:17px;display:flex;align-items:center;justify-content:center;color:#fff}
+  .medal svg{width:24px;height:24px}
+  .medal.blue{background:linear-gradient(135deg,#0a6cf5,#5a9dff);box-shadow:0 10px 20px -9px rgba(10,108,245,.65),inset 0 1px 0 rgba(255,255,255,.3)}
+  .medal.green{background:linear-gradient(135deg,#179a52,#46cd82);box-shadow:0 10px 20px -9px rgba(23,154,82,.6),inset 0 1px 0 rgba(255,255,255,.3)}
+  .medal.gold{background:linear-gradient(135deg,#bf8f25,#f0cf6f);box-shadow:0 10px 20px -9px rgba(191,143,37,.6),inset 0 1px 0 rgba(255,255,255,.4)}
+  .medal.locked{background:#eef1f5;color:#b7bfca;box-shadow:inset 0 0 0 1px #e6eaf0}
+  .ribbon{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:999px;background:#179a52;color:#fff;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+  .ribbon svg{width:11px;height:11px;stroke-width:3}
+  /* premium banner */
+  .banner{position:relative;overflow:hidden;border-radius:20px;color:#fff;background:linear-gradient(115deg,#081c3f 0%,#0a4bb0 60%,#0a6cf5 100%)}
+  .banner::after{content:"";position:absolute;inset:0;background:radial-gradient(460px 200px at 88% -60%,rgba(255,255,255,.25),transparent 70%)}
+  .banner > *{position:relative;z-index:1}
+  .glassbtn{background:rgba(255,255,255,.96);color:#0a2a5e;font-weight:600}
+  .glassbtn:hover{background:#fff}
+  .pdot{width:6px;height:6px;border-radius:999px;background:#fff;opacity:.5}
+  ::selection{background:rgba(10,108,245,.2)}
+  input[type=radio]{accent-color:var(--accent)}
+  input[type=checkbox]{accent-color:var(--accent)}
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-[#e9edf3]">
+  <div class="max-w-5xl mx-auto px-5 h-16 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2.5">
+      <img src="assets/logo-icon.png" alt="Vitality Academies" class="h-8 w-auto">
+      <span class="font-display font-semibold text-[15px] tracking-tight">Vitality Academies</span>
+    </a>
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-full grad text-white text-sm font-semibold flex items-center justify-center shadow-[0_6px_14px_-6px_rgba(10,108,245,.7)]" id="avatar"></div>
+        <span class="text-sm hidden sm:block"><span class="text-[#6b7280]">Hi,</span> <span id="userName" class="font-semibold"></span></span>
+      </div>
+      <a href="/" class="text-xs text-[#8a93a3] hover:text-[#0b1220] ml-1">Sign out</a>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-5 py-9">
+
+  <!-- TITLE -->
+  <div class="mb-6">
+    <div class="eyebrow mb-2">Your Academy</div>
+    <h1 class="font-display text-[34px] leading-[1.05] font-bold">Curriculum &amp; Activities</h1>
+    <p class="text-[#5b6573] mt-2.5 max-w-2xl">Your learning and behavior-change track. Move through your lessons, complete weekly missions, finish onboarding, and earn your rewards.</p>
+  </div>
+
+  <!-- TABS -->
+  <nav id="tabs" class="flex items-center gap-7 border-b border-[#e9edf3] mb-8 overflow-x-auto"></nav>
+
+  <!-- CONTENT -->
+  <div id="view"></div>
+
+</main>
+
+<footer class="max-w-5xl mx-auto px-5 pb-10 pt-2 text-center">
+  <p class="text-[12px] text-[#9aa4b2]">Vitality Academies · the learning home for every Vitality patient. This program supports, and does not replace, the guidance of your care team.</p>
+</footer>
+
+<script>
+const USER = { name: 'Maria' };
+document.getElementById('userName').textContent = USER.name;
+document.getElementById('avatar').textContent = USER.name.charAt(0).toUpperCase();
+const esc = (s)=> (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------------- ICONS (inline SVG, Lucide-style) ---------------- */
+const ICONS = {
+  flag:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>',
+  cap:'<path d="M21.4 10.9a1 1 0 0 0 0-1.8L12.8 5.2a2 2 0 0 0-1.7 0L2.6 9.1a1 1 0 0 0 0 1.8l8.6 3.9a2 2 0 0 0 1.7 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>',
+  target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  award:'<path d="M15.5 14.3 17 22l-5-3-5 3 1.5-7.7"/><circle cx="12" cy="8" r="6"/>',
+  check:'<polyline points="20 6 9 17 4 12"/>',
+  lock:'<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
+  calendar:'<rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>',
+  flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2 2.5z"/>',
+  trophy:'<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1 1.2C7.9 18.8 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1 1.2 1.1.6 2 1.9 2 3.8"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
+  star:'<polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3"/>',
+  arrowR:'<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  arrowL:'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  alert:'<path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/>',
+  bulb:'<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+  image:'<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
+  dumbbell:'<path d="M14.4 14.4 9.6 9.6"/><path d="M18.7 21.3 22 18l-.7-.7"/><path d="M2.7 6.7 6 3.4l.7.7"/><path d="m21.3 15.3-6-6"/><path d="m8.7 14.7-6-6"/><path d="m15.3 21.3-6-6"/><path d="m2.7 8.7 6 6"/>',
+  activity:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  clipboard:'<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h4"/>',
+  pill:'<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/>',
+  tag:'<path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1.2"/>',
+  leaf:'<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10Z"/><path d="M2 21c0-3 1.9-5.4 5.1-6C9.5 14.5 12 13 13 12"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  cup:'<path d="m6 8 1.8 12.3a2 2 0 0 0 2 1.7h4.5a2 2 0 0 0 2-1.7L18 8"/><path d="M5 8h14"/><path d="M7 15a6.5 6.5 0 0 1 5 0 6.5 6.5 0 0 0 5 0"/><path d="m12 8 1-6h2"/>',
+  ban:'<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
+  scale:'<path d="m16 16 3-8 3 8c-2 1.5-4 1.5-6 0"/><path d="m2 16 3-8 3 8c-2 1.5-4 1.5-6 0"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+  pen:'<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>',
+  headphones:'<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5a9 9 0 0 1 18 0v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/>',
+  share:'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" x2="15.4" y1="13.5" y2="17.5"/><line x1="15.4" x2="8.6" y1="6.5" y2="10.5"/>',
+  heart:'<path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/>',
+  bed:'<path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/>',
+  footprints:'<path d="M4 16v-2.4c0-.8-.4-1.6-.7-2.3C2.7 10 2.5 8.8 3 7.5 3.7 5.6 5.4 5 6 6c.5.9.3 2.4 0 3.4-.3 1.2.1 2.2.5 3.1.2.6.5 1.4.5 2.2V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.4c0-.8-.4-1.6-.7-2.3-.6-1.3-.8-2.5-.3-3.8.7-1.9 2.4-2.5 3-1.5.5.9.3 2.4 0 3.4-.3 1.2.1 2.2.5 3.1.2.6.5 1.4.5 2.2V20a2 2 0 1 1-4 0Z"/>',
+  sparkle:'<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/>',
+  book:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+  play:'<polygon points="6 3 20 12 6 21 6 3"/>',
+};
+function ic(name, cls){ return `<svg class="${cls||''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]||''}</svg>`; }
+
+/* ---------------- DATA (static / mock — nothing wired) ---------------- */
+
+const NEXTSTEPS = [
+  { title:'Create your vision board', sticker:'Vision Board', icon:'image', done:true,
+    body:'Use an 18–24" foam board. Add photos and sayings that capture your <b>why</b>. Leave a 1" margin around the edge for the stickers you earn, and put it where you\'ll see it daily.',
+    box:`<div class="rounded-xl bg-[#f7f9fc] border border-[#eef1f6] p-4 mt-3">
+          <p class="text-sm text-[#4b5563] flex items-center gap-2">${ic('sparkle','w-4 h-4 text-[#0a6cf5] shrink-0')} When it's ready, upload a photo and the team will celebrate it with you.</p>
+          <button class="mt-3 seg-btn inline-flex items-center gap-1.5">${ic('upload','w-4 h-4')} Upload photo</button>
+        </div>` },
+  { title:'Choose your goal object', sticker:'Daily Reminder', icon:'scale', done:true,
+    body:'Pick an object equal to your goal weight loss and decorate it. Put it on your bed each morning; each night, lift it a few times and set it down, picturing life without the extra weight.',
+    box:`<div class="rounded-xl bg-[#f7f9fc] border border-[#eef1f6] p-4 mt-3">
+          <div class="cap mb-2.5">Suggested objects by goal</div>
+          <table class="w-full text-sm"><tbody>
+            <tr class="border-b border-[#eef1f6]"><td class="py-2 font-semibold w-28">10–15 lbs</td><td class="py-2 text-[#4b5563]">Weight plate, bowling ball, large bag of rice</td></tr>
+            <tr class="border-b border-[#eef1f6]"><td class="py-2 font-semibold">20 lbs</td><td class="py-2 text-[#4b5563]">Half-full 5-gal water bottle, 20 lb dog food bag</td></tr>
+            <tr class="border-b border-[#eef1f6]"><td class="py-2 font-semibold">30 lbs</td><td class="py-2 text-[#4b5563]">24-pack of bottled water</td></tr>
+            <tr><td class="py-2 font-semibold">40 lbs</td><td class="py-2 text-[#4b5563]">Bag of water-softener salt or cement</td></tr>
+          </tbody></table>
+        </div>` },
+  { title:'Get your lab work done', sticker:'Labs Done', icon:'clipboard', done:true,
+    body:'Required before starting a GLP-1 medication. Had labs in the last 3 months? Upload them instead. Need a form? We\'ll generate one.',
+    box:`<div class="rounded-xl bg-[#f7f9fc] border border-[#eef1f6] p-4 mt-3">
+          <div class="cap mb-2.5">Required panels</div>
+          <table class="w-full text-sm"><tbody>
+            <tr class="border-b border-[#eef1f6]"><td class="py-2 font-semibold w-32">Metabolic</td><td class="py-2 text-[#4b5563]">CMP · Fasting Insulin · HbA1C</td></tr>
+            <tr class="border-b border-[#eef1f6]"><td class="py-2 font-semibold">Heart</td><td class="py-2 text-[#4b5563]">Lipid Panel</td></tr>
+            <tr class="border-b border-[#eef1f6]"><td class="py-2 font-semibold">Thyroid / Blood</td><td class="py-2 text-[#4b5563]">TSH · CBC</td></tr>
+            <tr class="border-b border-[#eef1f6]"><td class="py-2 font-semibold">Pancreas</td><td class="py-2 text-[#4b5563]">Lipase · Amylase</td></tr>
+            <tr><td class="py-2 font-semibold">Other</td><td class="py-2 text-[#4b5563]">Pregnancy test (women) · Vitamin D (optional)</td></tr>
+          </tbody></table>
+          <div class="flex flex-wrap gap-2 mt-3"><button class="seg-btn inline-flex items-center gap-1.5">${ic('upload','w-4 h-4')} Upload lab results</button><button class="seg-btn">Request lab form</button></div>
+        </div>` },
+  { title:'Gear up for movement', sticker:'Ready to Move', icon:'footprints', done:false,
+    body:'Get the basics: good gym shoes, a swimsuit (water activities are gentle on joints), sweatpants, and a tee. Functional beats fancy.',
+    box:`<label class="flex items-center gap-2.5 rounded-xl bg-[#f7f9fc] border border-[#eef1f6] p-4 mt-3 cursor-pointer text-sm">
+          <input type="checkbox" class="w-4 h-4"> My exercise gear is ready to go.
+        </label>` },
+  { title:'Sign your communication consent', sticker:'All Set', icon:'pen', done:false,
+    body:'A quick acknowledgment that email &amp; text are approved for non-urgent messages. Standard email/SMS isn\'t guaranteed HIPAA-secure and shouldn\'t be used for emergencies.',
+    box:`<label class="flex items-start gap-2.5 rounded-xl bg-[#f7f9fc] border border-[#eef1f6] p-4 mt-3 cursor-pointer text-sm">
+          <input type="checkbox" class="w-4 h-4 mt-0.5"> <span>I understand and authorize Vitality Weight Loss to contact me by email and/or text for scheduling, billing, and aspects of my care, unless I revoke this in writing.</span>
+        </label>` },
+];
+
+// PhD: Personal Health Education — real authored lessons + quizzes (static; nothing wired)
+const MODULES = [
+  { slug:'nutrition', icon:'leaf', title:'Nutrition foundations', sub:'Build the plate that keeps you full',
+    lessons:[
+      { heading:'Protein first', body:'Build every meal around a palm or two of protein. Protein keeps you full, steadies your energy, and protects the muscle you want to keep while you lose fat. Aim for a source at breakfast, lunch, and dinner.' },
+      { heading:'Fill half your plate with vegetables', body:'Vegetables add fiber and volume for very few calories, so you feel satisfied on less. Aim for about two cups of non starchy vegetables at your main meals, cooked or raw, however you enjoy them.' },
+      { heading:'Smart carbs and healthy fats', body:'Choose whole grain, high fiber carbs like quinoa, brown rice, oats, and beans over white bread and sugar. Add a thumb of healthy fat like olive oil, avocado, or nuts for flavor and fullness.' }],
+    quiz:[
+      { q:'What should you build each meal around?', options:['Bread','Protein','Juice'], answer:1 },
+      { q:'About how much of your plate should be non starchy vegetables?', options:['A quarter','Half','None'], answer:1 },
+      { q:'Which is the smarter carb choice?', options:['White bread','Quinoa or beans','Candy'], answer:1 }] },
+  { slug:'glp1', icon:'pill', title:'GLP-1, what to expect', sub:'Use your medication well',
+    lessons:[
+      { heading:'How it helps', body:'A GLP-1 medication lowers appetite and slows how fast your stomach empties, so you feel full sooner and longer. It is a tool that makes the plan easier to follow, not a replacement for the plan.' },
+      { heading:'Take it consistently', body:'Use it exactly as your provider prescribes, on the same day each week, and rotate your injection sites. Never change your dose on your own. If you miss a dose, ask your care team rather than doubling up.' },
+      { heading:'Managing side effects', body:'Mild nausea is common early and usually settles as your body adjusts. Eat smaller meals, stop when you feel full, drink water through the day, and go easy on greasy or very rich foods. Tell your care team about anything that does not settle.' }],
+    quiz:[
+      { q:'A GLP-1 medication mainly helps by:', options:['Replacing meals','Lowering appetite and slowing stomach emptying','Adding calories'], answer:1 },
+      { q:'If a side effect will not settle, you should:', options:['Stop everything yourself','Tell your care team','Ignore it'], answer:1 },
+      { q:'You should change your dose:', options:['Whenever you want','Only as your provider directs','Every day'], answer:1 }] },
+  { slug:'label', icon:'tag', title:'Reading a label', sub:'Shop with confidence',
+    lessons:[
+      { heading:'Start with the serving size', body:'Every number on the label is per serving, and a package often holds more than one. Check the serving size first so the calories and protein actually match what you eat.' },
+      { heading:'Find the protein and fiber', body:'Higher protein and higher fiber foods keep you fuller. Use them as quick green lights when you compare two products.' },
+      { heading:'Scan the ingredients', body:'Shorter lists with foods you recognize are usually the better pick. On a lactose free plan, watch for milk, whey, cream, and butter. Your phone barcode check flags these for you.' }],
+    quiz:[
+      { q:'The first thing to check on a label is:', options:['The brand','The serving size','The color'], answer:1 },
+      { q:'Two helpful green lights when comparing foods are:', options:['High protein and high fiber','High sugar and low protein','More additives'], answer:0 },
+      { q:'On a lactose free plan, watch the ingredients for:', options:['Milk, whey, cream, butter','Water','Salt only'], answer:0 }] },
+  { slug:'protein', icon:'dumbbell', title:'Protein & muscle', sub:'Keep the muscle, lose the fat',
+    lessons:[
+      { heading:'Protect your muscle', body:'When you lose weight, you want the loss to come from fat, not muscle. Eating enough protein and doing some resistance training tells your body to keep the muscle. Your InBody scan tracks this over time.' },
+      { heading:'How much and when', body:'A common target is roughly your goal body weight in grams of protein per day, spread across meals. Thirty to forty grams per meal is a useful anchor. Even amounts through the day work better than one big serving.' },
+      { heading:'Easy protein sources', body:'Lean meats, fish, eggs and egg whites, Greek style yogurt, cottage style products, beans and lentils, tofu, and a clean protein powder all count. On a lactose free plan, choose lactose free dairy or plant options.' }],
+    quiz:[
+      { q:'While losing weight, you want the loss to come mostly from:', options:['Muscle','Fat','Water only'], answer:1 },
+      { q:'A useful per meal protein anchor is about:', options:['5 grams','30 to 40 grams','100 grams'], answer:1 },
+      { q:'What helps protect muscle along with protein?', options:['Resistance training','Skipping meals','Less sleep'], answer:0 }] },
+  { slug:'mobility', icon:'activity', title:'Mobility & joints', sub:'Move without pain',
+    lessons:[
+      { heading:'Warm up and ease in', body:'A few minutes of easy movement before you train wakes up your joints and lowers pain. Start light and add only when the movement feels smooth and pain free.' },
+      { heading:'Low impact is your friend', body:'Walking, cycling, and supported strength work build fitness without pounding your joints. You can get strong and lean without jumping or running if those bother you.' },
+      { heading:'Use pain as a guide', body:'Mild muscle effort is fine. Sharp or worsening joint pain is a signal to reduce range, lower the weight, or switch to an easier version. Your plan includes easier and harder options for this reason.' }],
+    quiz:[
+      { q:'Before training you should:', options:['Go max effort cold','Warm up with easy movement','Skip it'], answer:1 },
+      { q:'For sore knees, a smart choice is:', options:['Jumping and running','Low impact work like walking or supported strength','Heavy max lifts'], answer:1 },
+      { q:'Sharp or worsening joint pain means:', options:['Push through','Reduce range or switch to an easier version','Add weight'], answer:1 }] },
+  { slug:'sleep', icon:'moon', title:'Sleep & recovery', sub:'Rest that drives results',
+    lessons:[
+      { heading:'Sleep drives results', body:'Short sleep raises hunger and cravings and makes it harder to lose fat. Aiming for seven to nine hours makes every other part of the plan work better.' },
+      { heading:'Build a wind down', body:'Keep a steady sleep and wake time, dim the lights and screens in the last hour, and keep the room cool and dark. A short walk earlier in the day helps you fall asleep at night.' },
+      { heading:'If you have sleep apnea', body:'Loud snoring, gasping, or daytime sleepiness are worth mentioning to your care team. Treating sleep apnea often improves energy, blood pressure, and weight loss together.' }],
+    quiz:[
+      { q:'Short sleep tends to:', options:['Lower hunger','Raise hunger and cravings','Do nothing'], answer:1 },
+      { q:'A good sleep target is:', options:['3 to 4 hours','7 to 9 hours','12 hours'], answer:1 },
+      { q:'Loud snoring and daytime sleepiness are worth:', options:['Ignoring','Mentioning to your care team','Hiding'], answer:1 }] },
+];
+
+const CURRICULUM = {
+  liveLesson:{ title:'Protein & Muscle', when:'Live class Thu, Jun 25 · 7:00 PM PT · with Richard DeVera, NP' },
+  phases:[
+    { name:'Phase 1 · Nutrition & Medication', slugs:['nutrition','glp1','label','protein'] },
+    { name:'Phase 2 · Movement & Recovery', slugs:['mobility','sleep'] },
+  ]
+};
+
+const CAT = {
+  Nutrition:{ bg:'bg-[#eaf7f0]', tx:'text-[#179a52]' },
+  Fitness:{ bg:'bg-[#e8f1ff]', tx:'text-[#0a6cf5]' },
+  Movement:{ bg:'bg-[#eaf7f0]', tx:'text-[#179a52]' },
+  Strength:{ bg:'bg-[#fdf2e3]', tx:'text-[#b9760a]' },
+  Cardio:{ bg:'bg-[#fdeef0]', tx:'text-[#d23a52]' },
+};
+
+const MISSIONS = [
+  { slug:'snacks', icon:'leaf', title:'Research & Plan Your 5 Healthy Snacks', cat:'Nutrition', dur:'1 week', tracker:5, badge:'Snack Strategist', points:50, status:'complete',
+    desc:'Pick, shop for, and prep 5 healthy snacks you enjoy so hunger never derails you.' },
+  { slug:'gym', icon:'dumbbell', title:'Select & Join Your Gym', cat:'Fitness', dur:'1 week', tracker:5, badge:'Gym Member', points:50, status:'todo',
+    desc:'Research, visit, and join a gym that fits your budget, schedule, and goals.' },
+  { slug:'walk', icon:'footprints', title:'Walk 15 Days This Month', cat:'Movement', dur:'1 month', tracker:15, badge:'Step Master', points:50, status:'complete', paired:true,
+    desc:'Complete 15 walking sessions this month — street, track, or pool.',
+    mission:'Complete at least 15 walking sessions this month — street, trail, indoor track, or pool — building the habit of daily movement in whatever environment works best for you.',
+    why:'A 2024 JAMA Network Open meta-analysis (116 trials, ~7,000 adults) found brisk walking at 150+ min/week produced significant reductions in waist size and body fat. The National Weight Control Registry reports 94% of people who kept off 30+ lbs exercised regularly — walking was the most common.',
+    keyRule:'15 days out of 30 = every other day. Consistency, not perfection.',
+    steps:['Choose your environment: street, indoor track/mall, or pool.','Set a minimum per walk (beginners 15 min) at a brisk pace.','Walk and log each session below; aim for 15.','Stack it onto an existing routine so it sticks.'],
+    tips:['A 15-min walk can cut sugar cravings ~50%.','Brisk = talk but not sing.','Use indoor track or pool in summer heat.','Walk with your accountability partner.'],
+    obstacles:['Too hot → indoor or pool.','Joint pain → pool walking.','No time → three 10-min walks count.'] },
+  { slug:'classes', icon:'users', title:'Research Gym Classes & Join One', cat:'Fitness', dur:'1 week', tracker:5, badge:'Gym Member', points:50, status:'todo',
+    desc:'Find a group fitness class you enjoy and attend at least one session.' },
+  { slug:'strength', icon:'dumbbell', title:'Strength Training 3x / Week for 3 Weeks', cat:'Strength', dur:'3 weeks', tracker:9, badge:'Strength Builder', points:50, status:'todo',
+    desc:'Total-body strength 3x/week for 3 weeks to build fat-burning muscle.' },
+  { slug:'aerobic', icon:'heart', title:'Aerobic Training 3x / Week for 3 Weeks', cat:'Cardio', dur:'3 weeks', tracker:9, badge:'Cardio Champion', points:50, status:'todo',
+    desc:'Dedicated cardio 3x/week for 3 weeks to drive the calorie deficit.' },
+  { slug:'fasting', icon:'clock', title:'Learn & Practice Intermittent Fasting for One Week', cat:'Nutrition', dur:'1 week', tracker:7, badge:'Snack Strategist', points:50, status:'todo',
+    desc:'Choose an intermittent fasting protocol and practice it consistently for 7 days.' },
+  { slug:'sugar', icon:'cup', title:'Say Goodbye to Sugar Drinks', cat:'Nutrition', dur:'1 week', tracker:7, badge:'Snack Strategist', points:50, status:'todo',
+    desc:'Cut sugar-sweetened drinks and replace them with satisfying alternatives.' },
+  { slug:'veggies', icon:'leaf', title:'Make Vegetables Half Your Plate', cat:'Nutrition', dur:'1 week', tracker:7, badge:'Snack Strategist', points:50, status:'todo',
+    desc:'Try 5 new veggie recipes and fill half your plate with vegetables all week.' },
+  { slug:'fastfood', icon:'ban', title:'10 Days Without Fast Food or Junk Food', cat:'Nutrition', dur:'10 days', tracker:10, badge:'Snack Strategist', points:50, status:'todo',
+    desc:'Learn what fast food does to your body, then go 10 days without it.' },
+  { slug:'smoothie', icon:'cup', title:'Smoothie Week — A Healthy Meal Daily', cat:'Nutrition', dur:'1 week', tracker:7, badge:'Snack Strategist', points:50, status:'todo',
+    desc:'Use a high-protein, high-fiber smoothie for one meal a day for 7 days.' },
+];
+
+const STATS = { complete:2, streak:12, badges:2, points:320, cycleTotal:11 };
+
+const BADGES = [
+  { name:'Vision Board', icon:'image', color:'blue', earned:true },
+  { name:'Daily Reminder', icon:'bed', color:'blue', earned:true },
+  { name:'Labs Done', icon:'clipboard', color:'blue', earned:true },
+  { name:'7-Day Streak', icon:'flame', color:'gold', earned:true },
+  { name:'Snack Strategist', icon:'leaf', color:'green', earned:true },
+  { name:'Step Master', icon:'footprints', color:'green', earned:true },
+  { name:'First Lesson', icon:'cap', color:'blue', earned:true },
+  { name:'Podcast Listener', icon:'headphones', color:'blue', earned:true },
+  { name:'Partner Setup', icon:'users', color:'blue', earned:true },
+  { name:'Shared a Win', icon:'share', color:'blue', earned:true },
+  { name:'Ready to Move', icon:'footprints', color:'green', earned:false },
+  { name:'All Set', icon:'check', color:'blue', earned:false },
+  { name:'Gym Member', icon:'dumbbell', color:'green', earned:false },
+  { name:'Strength Builder', icon:'dumbbell', color:'green', earned:false },
+  { name:'Cardio Champion', icon:'heart', color:'green', earned:false },
+  { name:'First 10 lbs', icon:'scale', color:'gold', earned:false },
+  { name:'3 InBody Scans', icon:'activity', color:'blue', earned:false },
+  { name:'Goal Reached', icon:'trophy', color:'gold', earned:false },
+];
+
+/* ---------------- TABS ---------------- */
+const nextRemaining = NEXTSTEPS.filter(s=>!s.done).length;
+const lessonsCount = MODULES.length;
+const missionsTodo = MISSIONS.filter(m=>m.status!=='complete').length;
+const doneLessons = new Set();
+
+const TABLIST = [
+  { id:'next', icon:'flag', label:'Next Steps', count:nextRemaining },
+  { id:'curriculum', icon:'cap', label:'Curriculum', count:lessonsCount },
+  { id:'missions', icon:'target', label:'Weekly Missions', count:missionsTodo },
+  { id:'rewards', icon:'award', label:'Rewards', count:null },
+];
+let activeTab = 'next';
+let openMission = null;
+let openLesson = null;
+
+function renderTabs(){
+  document.getElementById('tabs').innerHTML = TABLIST.map(t=>
+    `<button class="tab ${t.id===activeTab?'active':''}" data-tab="${t.id}">${ic(t.icon)}${t.label}${t.count!=null?`<span class="chip">${t.count}</span>`:''}</button>`).join('');
+}
+
+/* ---------------- VIEWS ---------------- */
+
+function ring(done,total){ const pct=Math.round(done/total*100); return `<div class="text-right shrink-0"><div class="font-display text-[26px] font-bold text-[#0a6cf5] seg leading-none">${done}<span class="text-[#b7bfca]">/${total}</span></div><div class="cap mt-1">Complete</div></div>`; }
+
+function viewNext(){
+  const done = NEXTSTEPS.filter(s=>s.done).length, total = NEXTSTEPS.length, pct = Math.round(done/total*100);
+  return `
+  <div class="card p-6 mb-4">
+    <div class="flex items-start justify-between gap-4">
+      <div class="flex items-start gap-3.5">
+        <div class="tile grad text-white w-11 h-11 shrink-0">${ic('flag','w-5 h-5')}</div>
+        <div><h2 class="font-display text-xl font-semibold">Your Onboarding Quest</h2>
+          <p class="text-sm text-[#5b6573] mt-1 max-w-xl">Complete these 5 steps to set up for a strong start. Each one earns a sticker for your Reward Book.</p></div>
+      </div>
+      ${ring(done,total)}
+    </div>
+    <div class="h-2 rounded-full bg-[#eef1f6] mt-5 overflow-hidden"><div class="h-full grad rounded-full" style="width:${pct}%"></div></div>
+  </div>
+  <div class="space-y-4">
+    ${NEXTSTEPS.map(s=>`
+      <div class="card p-5 ${s.done?'bg-gradient-to-br from-white to-[#f3fbf6] border-[#d6efe0]':''}">
+        <div class="flex items-start gap-3.5">
+          <div class="tile shrink-0 w-11 h-11 ${s.done?'grad text-white':'bg-[#f1f4f8] text-[#0a6cf5]'}">${ic(s.icon,'w-5 h-5')}</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="font-display font-semibold text-[16px]">${esc(s.title)}</h3>
+              <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-[#b9760a] bg-[#fdf3e2] rounded-full px-2.5 py-1">${ic('star','w-3 h-3')} ${esc(s.sticker)}</span>
+              ${s.done?`<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0a7a3d] bg-[#eaf7f0] rounded-full px-2.5 py-1 ml-auto">${ic('check','w-3 h-3')} Done</span>`:''}
+            </div>
+            <p class="text-sm text-[#4b5563] mt-1.5 leading-relaxed">${s.body}</p>
+            ${s.box||''}
+          </div>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function viewCurriculum(){
+  if (openLesson) return viewLessonDetail(openLesson);
+  const c = CURRICULUM;
+  return `
+  <div class="banner p-5 mb-4">
+    <div class="flex items-center justify-between gap-4 flex-wrap">
+      <div class="flex items-center gap-3.5">
+        <div class="tile w-11 h-11 shrink-0" style="background:rgba(255,255,255,.16)">${ic('cap','w-5 h-5')}</div>
+        <div><div class="text-[11px] font-semibold uppercase tracking-[.14em] text-white/70">This week's live lesson</div>
+          <div class="font-display font-semibold text-lg mt-0.5">${esc(c.liveLesson.title)}</div>
+          <div class="text-sm text-white/80 mt-0.5">${esc(c.liveLesson.when)}</div></div>
+      </div>
+      <button class="glassbtn inline-flex items-center gap-2 text-sm rounded-full px-4 py-2.5 shrink-0">${ic('calendar','w-4 h-4')} Add to calendar</button>
+    </div>
+  </div>
+  <div class="grid sm:grid-cols-3 gap-3 mb-7">
+    ${statCard(ic('book','w-5 h-5'), doneLessons.size+' / '+MODULES.length, 'Lessons complete')}
+    ${statCard(ic('play','w-5 h-5'), '3 each', 'Lessons per module')}
+    ${statCard(ic('check','w-5 h-5'), 'Quiz', 'To lock it in')}
+  </div>
+  <div class="eyebrow mb-1">Personal Health Degree</div>
+  <p class="text-sm text-[#5b6573] mb-5 max-w-2xl">Each lesson is a short read with a quick quiz to lock in what you learn. Lessons are the education; Weekly Missions are where you put them into action.</p>
+  ${c.phases.map(p=>`
+    <div class="cap mt-6 mb-2.5">${esc(p.name)}</div>
+    <div class="card divide-y divide-[#eef1f6] overflow-hidden">
+      ${p.slugs.map(slug=>{ const m=MODULES.find(x=>x.slug===slug); if(!m) return ''; const isDone=doneLessons.has(slug); return `
+        <button class="w-full text-left p-4 flex items-center gap-3.5 hover:bg-[#fafbfd] transition" data-lesson="${m.slug}">
+          <div class="tile shrink-0 w-11 h-11 ${isDone?'grad text-white':'bg-[#eef4ff] text-[#0a6cf5]'}">${isDone?ic('check','w-5 h-5'):ic(m.icon,'w-5 h-5')}</div>
+          <div class="flex-1 min-w-0">
+            <div class="font-display font-semibold text-[15px]">${esc(m.title)}</div>
+            <div class="text-sm text-[#6b7280]">${esc(m.sub)}</div>
+          </div>
+          ${isDone?`<span class="inline-flex items-center gap-1 shrink-0 text-[11px] font-semibold text-[#0a7a3d] bg-[#eaf7f0] rounded-full px-2.5 py-1">${ic('check','w-3 h-3')} Completed</span>`
+                  :`<span class="shrink-0 text-[#0a6cf5]">${ic('arrowR','w-4 h-4')}</span>`}
+        </button>`;}).join('')}
+    </div>`).join('')}
+  <div class="card p-5 mt-6 text-center text-sm text-[#6b7280]">More lessons drop in here as the full curriculum is uploaded — each keeps this same read-and-quiz structure.</div>`;
+}
+
+function statCard(icon, big, label){
+  return `<div class="card p-4 flex items-center gap-3.5">
+    <div class="tile w-10 h-10 bg-[#eef4ff] text-[#0a6cf5] shrink-0">${icon}</div>
+    <div><div class="font-display text-lg font-semibold seg leading-none">${big}</div><div class="cap mt-1.5">${label}</div></div>
+  </div>`;
+}
+
+function viewLessonDetail(slug){
+  const m = MODULES.find(x=>x.slug===slug); if(!m) return viewCurriculum();
+  const isDone = doneLessons.has(slug);
+  return `
+  <button class="inline-flex items-center gap-1.5 text-sm text-[#0a6cf5] font-semibold mb-3" data-lesson-back="1">${ic('arrowL','w-4 h-4')} All lessons</button>
+  <div class="card p-5 mb-4 flex items-center gap-3.5">
+    <div class="tile grad text-white w-12 h-12 shrink-0">${ic(m.icon,'w-6 h-6')}</div>
+    <div><h2 class="font-display text-xl font-semibold">${esc(m.title)}</h2><div class="text-sm text-[#6b7280]">${esc(m.sub)} · earns +25 points</div></div>
+  </div>
+  <div class="card p-6 mb-4 space-y-5">
+    ${m.lessons.map((L,i)=>`<div class="flex gap-3.5"><div class="tile shrink-0 w-8 h-8 bg-[#eef4ff] text-[#0a6cf5] font-display font-semibold text-sm">${i+1}</div><div><div class="font-display font-semibold mb-1">${esc(L.heading)}</div><p class="text-sm text-[#4b5563] leading-relaxed">${esc(L.body)}</p></div></div>`).join('')}
+  </div>
+  <div class="card p-6">
+    <div class="eyebrow mb-3">Quick check</div>
+    <div id="quizForm" data-quiz="${m.slug}">
+      ${m.quiz.map((q,qi)=>`<div class="mb-5"><div class="text-sm font-semibold mb-2">${qi+1}. ${esc(q.q)}</div><div class="space-y-1">${q.options.map((o,oi)=>`<label class="flex items-center gap-2.5 py-2 px-3 rounded-xl border border-transparent hover:border-[#e9edf3] hover:bg-[#f7f9fc] cursor-pointer"><input type="radio" name="q${qi}" value="${oi}" class="w-4 h-4"><span class="text-sm">${esc(o)}</span></label>`).join('')}</div></div>`).join('')}
+    </div>
+    <div id="quizResult" class="text-sm mb-3"></div>
+    <button id="quizSubmit" class="w-full py-3 rounded-xl font-semibold ${isDone?'bg-[#eaf7f0] text-[#0a7a3d]':'grad text-white'}" ${isDone?'disabled':''}>${isDone?'Completed':'Submit'}</button>
+  </div>`;
+}
+
+function submitQuiz(slug){
+  const m = MODULES.find(x=>x.slug===slug); if(!m) return;
+  let correct=0, answered=0;
+  m.quiz.forEach((q,qi)=>{ const sel=document.querySelector(`input[name="q${qi}"]:checked`); if(sel){ answered++; if(+sel.value===q.answer) correct++; } });
+  const res = document.getElementById('quizResult');
+  if (answered < m.quiz.length){ res.innerHTML='<span class="text-amber-600 font-medium">Answer every question to finish.</span>'; return; }
+  if (correct >= Math.ceil(m.quiz.length*0.67)){
+    res.innerHTML=`<span class="text-emerald-600 font-semibold">Nice, ${correct}/${m.quiz.length} correct. +25 points.</span>`;
+    doneLessons.add(slug);
+    const btn=document.getElementById('quizSubmit'); btn.disabled=true; btn.textContent='Completed';
+    btn.className='w-full py-3 rounded-xl font-semibold bg-[#eaf7f0] text-[#0a7a3d]';
+  } else {
+    res.innerHTML=`<span class="text-rose-600 font-semibold">${correct}/${m.quiz.length} correct. Review the lesson and try again.</span>`;
+  }
+}
+
+function viewMissions(){
+  if (openMission) return viewMissionDetail(openMission);
+  const paired = MISSIONS.find(m=>m.paired);
+  const statBox=(icon,v,l)=>`<div class="card p-4"><div class="flex items-center justify-between"><div class="font-display text-2xl font-semibold seg leading-none">${v}</div><span class="text-[#b7c0cd]">${icon}</span></div><div class="cap mt-2">${l}</div></div>`;
+  return `
+  <div class="banner p-5 mb-4">
+    <div class="flex items-center justify-between gap-4 flex-wrap">
+      <div class="flex items-center gap-3.5">
+        <div class="tile w-11 h-11 shrink-0" style="background:rgba(255,255,255,.16)">${ic('target','w-5 h-5')}</div>
+        <div><div class="text-[11px] font-semibold uppercase tracking-[.14em] text-white/70">Paired with this week's lesson</div>
+          <div class="font-display font-semibold text-lg mt-0.5">${esc(paired?paired.title:'')}</div>
+          <div class="text-sm text-white/80 mt-0.5">How to Fit Fitness Into a Busy Life</div></div>
+      </div>
+      <button class="glassbtn inline-flex items-center gap-2 text-sm rounded-full px-4 py-2.5 shrink-0" data-open="${paired?paired.slug:''}">${ic('arrowR','w-4 h-4')} Open paired mission</button>
+    </div>
+  </div>
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+    ${statBox(ic('check','w-5 h-5'),STATS.complete,'Missions complete')}
+    ${statBox(ic('flame','w-5 h-5'),STATS.streak,'Day streak')}
+    ${statBox(ic('award','w-5 h-5'),STATS.badges,'Badges earned')}
+    ${statBox(ic('star','w-5 h-5'),STATS.points,'Points')}
+  </div>
+  <div class="px-1 mb-7">
+    <div class="h-2 rounded-full bg-[#eef1f6] overflow-hidden"><div class="h-full grad rounded-full" style="width:${Math.round(STATS.complete/STATS.cycleTotal*100)}%"></div></div>
+    <div class="text-xs text-[#6b7280] mt-1.5">${STATS.complete} of ${STATS.cycleTotal} missions complete this cycle</div>
+  </div>
+  <div class="cap mb-3">Your Weekly Missions</div>
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    ${MISSIONS.map(m=>{const c=CAT[m.cat]||CAT.Nutrition;const done=m.status==='complete';return `
+      <button class="card ch p-5 text-left flex flex-col" data-open="${m.slug}">
+        <div class="flex items-start justify-between">
+          <div class="tile w-11 h-11 ${c.bg} ${c.tx}">${ic(m.icon,'w-5 h-5')}</div>
+          <span class="inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2.5 py-1 ${done?'text-[#0a7a3d] bg-[#eaf7f0]':'text-[#6b7280] bg-[#f1f4f8]'}">${done?ic('check','w-3 h-3'):''}${done?'Complete':'To do'}</span>
+        </div>
+        <h3 class="font-display font-semibold text-[15px] mt-3.5 leading-snug">${esc(m.title)}</h3>
+        <p class="text-sm text-[#6b7280] mt-1.5 flex-1">${esc(m.desc)}</p>
+        <div class="flex items-center justify-between mt-4 pt-3 border-t border-[#f1f4f8]">
+          <span class="text-[11px] font-semibold rounded-full px-2.5 py-1 ${c.bg} ${c.tx}">${m.cat}</span>
+          <span class="text-xs text-[#9aa4b2]">${m.dur}</span>
+        </div>
+      </button>`;}).join('')}
+  </div>`;
+}
+
+function SCALE(opts){ return `<div class="flex flex-wrap gap-2 scale-row">${opts.map(o=>`<button class="seg-btn">${o}</button>`).join('')}</div>`; }
+
+function viewMissionDetail(slug){
+  const m = MISSIONS.find(x=>x.slug===slug); if(!m) return viewMissions();
+  const c = CAT[m.cat]||CAT.Nutrition;
+  const mission = m.mission || m.desc;
+  const why = m.why || 'Building this habit reinforces the lesson it is paired with and compounds with your other missions. Small, repeatable actions are what make weight loss stick for life.';
+  const steps = m.steps || ['Read the mission and decide when you will do it.','Set a realistic minimum you can hit even on a busy day.','Log each session in the tracker below.','Stack it onto an existing routine so it sticks.'];
+  const tips = m.tips || ['Start smaller than feels necessary — consistency beats intensity.','Pair it with something you already do daily.','Loop in your accountability partner.'];
+  const obstacles = m.obstacles || ['No time → shrink the session, never skip entirely.','Low motivation → just start for two minutes.','Forgot → set a daily phone reminder.'];
+  return `
+  <button class="inline-flex items-center gap-1.5 text-sm text-[#0a6cf5] font-semibold mb-3" data-back="1">${ic('arrowL','w-4 h-4')} All missions</button>
+  <div class="card p-5 mb-4 flex items-center gap-3.5">
+    <div class="tile w-12 h-12 ${c.bg} ${c.tx} shrink-0">${ic(m.icon,'w-6 h-6')}</div>
+    <div><span class="text-[11px] font-semibold rounded-full px-2.5 py-1 ${c.bg} ${c.tx}">${m.cat}</span>
+      <h2 class="font-display text-xl font-semibold mt-1.5">${esc(m.title)}</h2>
+      <div class="text-sm text-[#6b7280]">${m.dur} · earns the <b>${esc(m.badge)}</b> badge</div></div>
+  </div>
+
+  <div class="card p-6 mb-4">
+    <div class="cap mb-3">Pre-test — before you begin</div>
+    <div class="space-y-4">
+      <div><div class="text-sm font-semibold mb-2">1. How familiar are you with this skill or habit?</div>${SCALE(['Not at all','A little','Somewhat','Very'])}</div>
+      <div><div class="text-sm font-semibold mb-2">2. How confident are you that you can complete this activity?</div>${SCALE(['Not confident','Slightly','Moderately','Very confident'])}</div>
+      <div><div class="text-sm font-semibold mb-2">3. How important is this habit for your health right now?</div>${SCALE(['Not important','Somewhat','Important','Very important'])}</div>
+      <div><div class="text-sm font-semibold mb-2">4. What do you hope to gain from this mission?</div><textarea rows="2" placeholder="Your answer…" class="w-full rounded-xl border border-[#e9edf3] p-3 text-sm focus:border-[#0a6cf5] outline-none"></textarea></div>
+    </div>
+  </div>
+
+  <div class="card p-6 mb-4">
+    <h3 class="font-display font-semibold text-lg mb-3 flex items-center gap-2">${ic('target','w-5 h-5 text-[#0a6cf5]')} The mission</h3>
+    <div class="rounded-xl bg-[#eef4ff] text-[#1a3a6b] p-4 text-sm leading-relaxed">${esc(mission)}</div>
+    <div class="font-semibold mt-4 mb-1">Why this matters</div>
+    <p class="text-sm text-[#4b5563] leading-relaxed">${esc(why)}</p>
+    ${m.keyRule?`<div class="border-l-[3px] border-[#0a6cf5] bg-[#f5f9ff] pl-3.5 py-2.5 mt-3 text-sm rounded-r-lg"><b>Key rule:</b> ${esc(m.keyRule)}</div>`:''}
+  </div>
+
+  <div class="card p-6 mb-4">
+    <h3 class="font-display font-semibold mb-4">Step-by-step</h3>
+    <div class="space-y-3.5">${steps.map((s,i)=>`<div class="flex items-start gap-3"><div class="tile shrink-0 w-7 h-7 grad text-white text-xs font-bold">${i+1}</div><span class="text-sm text-[#4b5563] pt-0.5">${esc(s)}</span></div>`).join('')}</div>
+  </div>
+
+  <div class="card p-6 mb-4">
+    <h3 class="font-display font-semibold">Progress tracker</h3>
+    <p class="text-xs text-[#9aa4b2] mb-3.5">Tap a box each time you complete a session</p>
+    <div class="flex flex-wrap gap-2">${Array.from({length:m.tracker},(_,i)=>`<button class="trk" data-trk="${i}">${i+1}</button>`).join('')}</div>
+  </div>
+
+  <div class="grid sm:grid-cols-2 gap-4 mb-4">
+    <div class="card p-5"><div class="font-semibold text-[#0a7a3d] mb-2.5 flex items-center gap-2">${ic('bulb','w-4 h-4')} Pro tips</div><ul class="text-sm text-[#4b5563] space-y-2 list-disc pl-4">${tips.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div>
+    <div class="card p-5"><div class="font-semibold text-[#b9760a] mb-2.5 flex items-center gap-2">${ic('alert','w-4 h-4')} Obstacles &amp; fixes</div><ul class="text-sm text-[#4b5563] space-y-2 list-disc pl-4">${obstacles.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div>
+  </div>
+
+  <div class="card p-6 mb-4">
+    <div class="cap mb-3">Post-survey — after your mission</div>
+    <div class="space-y-4">
+      <div><div class="text-sm font-semibold mb-2">1. How consistently did you complete this activity?</div>${SCALE(['Not at all','Some','Most','Every time'])}</div>
+      <div><div class="text-sm font-semibold mb-2">2. How beneficial was this activity for you?</div>${SCALE(['Not','Somewhat','Beneficial','Very beneficial'])}</div>
+      <div><div class="text-sm font-semibold mb-2">3. How likely are you to continue this habit?</div>${SCALE(['Not likely','Somewhat','Likely','Very likely'])}</div>
+      <div><div class="text-sm font-semibold mb-2">4. What did you learn, and what would help you keep this habit?</div><textarea rows="2" placeholder="Your reflection…" class="w-full rounded-xl border border-[#e9edf3] p-3 text-sm focus:border-[#0a6cf5] outline-none"></textarea></div>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-3">
+    <button class="inline-flex items-center gap-2 rounded-full grad text-white font-semibold px-5 py-3 text-sm">${ic('check','w-4 h-4')} Mark completed</button>
+    <button class="rounded-full border border-[#e9edf3] bg-white font-semibold px-5 py-3 text-sm" data-back="1">Back to missions</button>
+    <span class="text-sm text-[#9aa4b2]">Completing earns the <b>${esc(m.badge)}</b> badge + ${m.points} points.</span>
+  </div>`;
+}
+
+function viewRewards(){
+  const got = BADGES.filter(b=>b.earned).length;
+  return `
+  <div class="card p-6">
+    <div class="flex items-start justify-between gap-4">
+      <div class="flex items-start gap-3.5">
+        <div class="tile w-11 h-11 shrink-0" style="background:linear-gradient(135deg,#bf8f25,#f0cf6f);color:#fff;box-shadow:0 10px 20px -9px rgba(191,143,37,.6)">${ic('award','w-5 h-5')}</div>
+        <div><h2 class="font-display text-xl font-semibold">Your Reward Book</h2>
+          <p class="text-sm text-[#5b6573] mt-1 max-w-xl">Stickers from onboarding, badges from missions, and milestones. Fill the board, digitally and on your real vision board.</p></div>
+      </div>
+      ${ring(got,BADGES.length)}
+    </div>
+    <div class="h-2 rounded-full bg-[#eef1f6] mt-5 overflow-hidden"><div class="h-full rounded-full" style="width:${Math.round(got/BADGES.length*100)}%;background:linear-gradient(90deg,#bf8f25,#f0cf6f)"></div></div>
+    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 mt-7">
+      ${BADGES.map(b=>`
+        <div class="rounded-2xl border p-4 flex flex-col items-center text-center ${b.earned?'bg-white border-[#eef1f6]':'bg-[#fafbfc] border-[#eef1f6]'}">
+          <div class="medal ${b.earned?b.color:'locked'}">
+            ${b.earned?ic(b.icon,'w-6 h-6'):ic('lock','w-5 h-5')}
+            ${b.earned?`<span class="ribbon">${ic('check')}</span>`:''}
+          </div>
+          <span class="text-[12px] font-semibold mt-3 leading-tight ${b.earned?'':'text-[#9aa4b2]'}">${esc(b.name)}</span>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+/* ---------------- RENDER + EVENTS ---------------- */
+function render(){
+  renderTabs();
+  const v = document.getElementById('view');
+  if (activeTab==='next') v.innerHTML = viewNext();
+  else if (activeTab==='curriculum') v.innerHTML = viewCurriculum();
+  else if (activeTab==='missions') v.innerHTML = viewMissions();
+  else if (activeTab==='rewards') v.innerHTML = viewRewards();
+  window.scrollTo({top:0,behavior:'instant'});
+}
+
+document.addEventListener('click',(e)=>{
+  const tab = e.target.closest('[data-tab]');
+  if (tab){ activeTab = tab.getAttribute('data-tab'); openMission=null; openLesson=null; render(); return; }
+  const lesson = e.target.closest('[data-lesson]');
+  if (lesson && lesson.getAttribute('data-lesson')){ activeTab='curriculum'; openLesson = lesson.getAttribute('data-lesson'); render(); return; }
+  const lessonBack = e.target.closest('[data-lesson-back]');
+  if (lessonBack){ openLesson=null; render(); return; }
+  const quizSubmit = e.target.closest('#quizSubmit');
+  if (quizSubmit && !quizSubmit.disabled){ const f=document.getElementById('quizForm'); if(f) submitQuiz(f.getAttribute('data-quiz')); return; }
+  const open = e.target.closest('[data-open]');
+  if (open && open.getAttribute('data-open')){ activeTab='missions'; openMission = open.getAttribute('data-open'); render(); return; }
+  const back = e.target.closest('[data-back]');
+  if (back){ openMission=null; render(); return; }
+  const trk = e.target.closest('[data-trk]');
+  if (trk){ trk.classList.toggle('on'); return; }
+  const seg = e.target.closest('.scale-row .seg-btn');
+  if (seg){ [...seg.parentElement.querySelectorAll('.seg-btn')].forEach(b=>b.classList.remove('sel')); seg.classList.add('sel'); return; }
+});
+
+render();
+</script>
+</body>
+</html>
