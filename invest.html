@@ -79,7 +79,17 @@
   .split{display:grid; grid-template-columns:1.05fr .95fr; gap:clamp(28px,4vw,72px); align-items:center}
   .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(16px,2vw,34px)}
   .grid2{display:grid; grid-template-columns:1fr 1fr; gap:clamp(16px,2.4vw,40px)}
-  @media(max-width:880px){ .split,.grid3,.grid2{grid-template-columns:1fr; gap:22px} h1{font-size:clamp(40px,13vw,70px)} }
+  @media(max-width:880px){
+    .split,.grid3,.grid2{grid-template-columns:1fr; gap:22px}
+    /* two slides set grid columns inline (4-up MSO cards, the DeBry split) — !important so the
+       inline value can't keep them multi-column on phones */
+    .slide .inner.split, .slide .grid2, .slide .grid3{grid-template-columns:1fr !important}
+    h1{font-size:clamp(40px,13vw,70px)}
+    /* full-screen slides clip overflow + vertically center → tall slides get cut off on short
+       phone screens. On phones: top-align + scroll within the slide, with room for the fixed
+       bottom nav so the last lines aren't hidden behind it. */
+    .slide{justify-content:flex-start; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:120px}
+  }
 
   .pill{display:inline-flex; align-items:center; gap:9px; font-family:var(--disp); font-weight:600;
     font-size:13px; letter-spacing:.02em; padding:8px 16px; border-radius:999px;

@@ -51,7 +51,15 @@
   input:focus,select:focus{outline:none; border-color:var(--blue); background:#fff}
   .row2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
   .row3{display:grid; grid-template-columns:2fr 1fr 1fr; gap:14px}
-  @media(max-width:560px){ .row2,.row3{grid-template-columns:1fr} }
+  @media(max-width:560px){
+    .row2,.row3{grid-template-columns:1fr}
+    #agreement-doc{padding:20px 18px}      /* roomier legal text on a phone */
+    .docwrap{max-height:62vh}              /* taller agreement scroll window on small screens */
+    .units button{width:52px; height:52px} /* 5 unit chips fit a narrow phone row */
+    .actions{flex-direction:column-reverse; align-items:stretch}
+    .actions .btn{width:100%; justify-content:center}
+    .actions > div{display:flex; flex-direction:column; gap:12px}
+  }
 
   /* units selector */
   .units{display:flex; gap:10px; flex-wrap:wrap}
