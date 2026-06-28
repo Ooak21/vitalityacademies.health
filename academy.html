@@ -164,7 +164,7 @@ function ic(name, cls){ return `<svg class="${cls||''}" viewBox="0 0 24 24" fill
 
 const NEXTSTEPS = [
   { title:'Create your vision board', sticker:'Vision Board', icon:'image', done:true,
-    body:'Use an 18–24" foam board. Add photos and sayings that capture your <b>why</b>. Leave a 1" margin around the edge for the stickers you earn, and put it where you\'ll see it daily.',
+    body:'Use an 18 to 24" foam board. Add photos and sayings that capture your <b>why</b>. Leave a 1" margin around the edge for the stickers you earn, and put it where you\'ll see it daily.',
     box:`<div class="rounded-xl bg-[#f7f9fc] border border-[#eef1f6] p-4 mt-3">
           <p class="text-sm text-[#4b5563] flex items-center gap-2">${ic('sparkle','w-4 h-4 text-[#0a6cf5] shrink-0')} When it's ready, upload a photo and the team will celebrate it with you.</p>
           <button class="mt-3 seg-btn inline-flex items-center gap-1.5">${ic('upload','w-4 h-4')} Upload photo</button>
@@ -174,7 +174,7 @@ const NEXTSTEPS = [
     box:`<div class="rounded-xl bg-[#f7f9fc] border border-[#eef1f6] p-4 mt-3">
           <div class="cap mb-2.5">Suggested objects by goal</div>
           <table class="w-full text-sm"><tbody>
-            <tr class="border-b border-[#eef1f6]"><td class="py-2 font-semibold w-28">10–15 lbs</td><td class="py-2 text-[#4b5563]">Weight plate, bowling ball, large bag of rice</td></tr>
+            <tr class="border-b border-[#eef1f6]"><td class="py-2 font-semibold w-28">10 to 15 lbs</td><td class="py-2 text-[#4b5563]">Weight plate, bowling ball, large bag of rice</td></tr>
             <tr class="border-b border-[#eef1f6]"><td class="py-2 font-semibold">20 lbs</td><td class="py-2 text-[#4b5563]">Half-full 5-gal water bottle, 20 lb dog food bag</td></tr>
             <tr class="border-b border-[#eef1f6]"><td class="py-2 font-semibold">30 lbs</td><td class="py-2 text-[#4b5563]">24-pack of bottled water</td></tr>
             <tr><td class="py-2 font-semibold">40 lbs</td><td class="py-2 text-[#4b5563]">Bag of water-softener salt or cement</td></tr>
@@ -285,9 +285,9 @@ const MISSIONS = [
   { slug:'gym', icon:'dumbbell', title:'Select & Join Your Gym', cat:'Fitness', dur:'1 week', tracker:5, badge:'Gym Member', points:50, status:'todo',
     desc:'Research, visit, and join a gym that fits your budget, schedule, and goals.' },
   { slug:'walk', icon:'footprints', title:'Walk 15 Days This Month', cat:'Movement', dur:'1 month', tracker:15, badge:'Step Master', points:50, status:'complete', paired:true,
-    desc:'Complete 15 walking sessions this month — street, track, or pool.',
-    mission:'Complete at least 15 walking sessions this month — street, trail, indoor track, or pool — building the habit of daily movement in whatever environment works best for you.',
-    why:'A 2024 JAMA Network Open meta-analysis (116 trials, ~7,000 adults) found brisk walking at 150+ min/week produced significant reductions in waist size and body fat. The National Weight Control Registry reports 94% of people who kept off 30+ lbs exercised regularly — walking was the most common.',
+    desc:'Complete 15 walking sessions this month: street, track, or pool.',
+    mission:'Complete at least 15 walking sessions this month (street, trail, indoor track, or pool), building the habit of daily movement in whatever environment works best for you.',
+    why:'A 2024 JAMA Network Open meta-analysis (116 trials, ~7,000 adults) found brisk walking at 150+ min/week produced significant reductions in waist size and body fat. The National Weight Control Registry reports 94% of people who kept off 30+ lbs exercised regularly, and walking was the most common.',
     keyRule:'15 days out of 30 = every other day. Consistency, not perfection.',
     steps:['Choose your environment: street, indoor track/mall, or pool.','Set a minimum per walk (beginners 15 min) at a brisk pace.','Walk and log each session below; aim for 15.','Stack it onto an existing routine so it sticks.'],
     tips:['A 15-min walk can cut sugar cravings ~50%.','Brisk = talk but not sing.','Use indoor track or pool in summer heat.','Walk with your accountability partner.'],
@@ -306,7 +306,7 @@ const MISSIONS = [
     desc:'Try 5 new veggie recipes and fill half your plate with vegetables all week.' },
   { slug:'fastfood', icon:'ban', title:'10 Days Without Fast Food or Junk Food', cat:'Nutrition', dur:'10 days', tracker:10, badge:'Snack Strategist', points:50, status:'todo',
     desc:'Learn what fast food does to your body, then go 10 days without it.' },
-  { slug:'smoothie', icon:'cup', title:'Smoothie Week — A Healthy Meal Daily', cat:'Nutrition', dur:'1 week', tracker:7, badge:'Snack Strategist', points:50, status:'todo',
+  { slug:'smoothie', icon:'cup', title:'Smoothie Week · A Healthy Meal Daily', cat:'Nutrition', dur:'1 week', tracker:7, badge:'Snack Strategist', points:50, status:'todo',
     desc:'Use a high-protein, high-fiber smoothie for one meal a day for 7 days.' },
 ];
 
@@ -427,7 +427,7 @@ function viewCurriculum(){
                   :`<span class="shrink-0 text-[#0a6cf5]">${ic('arrowR','w-4 h-4')}</span>`}
         </button>`;}).join('')}
     </div>`).join('')}
-  <div class="card p-5 mt-6 text-center text-sm text-[#6b7280]">More lessons drop in here as the full curriculum is uploaded — each keeps this same read-and-quiz structure.</div>`;
+  <div class="card p-5 mt-6 text-center text-sm text-[#6b7280]">More lessons drop in here as the full curriculum is uploaded. Each keeps this same read-and-quiz structure.</div>`;
 }
 
 function statCard(icon, big, label){
@@ -527,7 +527,7 @@ function viewMissionDetail(slug){
   const mission = m.mission || m.desc;
   const why = m.why || 'Building this habit reinforces the lesson it is paired with and compounds with your other missions. Small, repeatable actions are what make weight loss stick for life.';
   const steps = m.steps || ['Read the mission and decide when you will do it.','Set a realistic minimum you can hit even on a busy day.','Log each session in the tracker below.','Stack it onto an existing routine so it sticks.'];
-  const tips = m.tips || ['Start smaller than feels necessary — consistency beats intensity.','Pair it with something you already do daily.','Loop in your accountability partner.'];
+  const tips = m.tips || ['Start smaller than feels necessary. Consistency beats intensity.','Pair it with something you already do daily.','Loop in your accountability partner.'];
   const obstacles = m.obstacles || ['No time → shrink the session, never skip entirely.','Low motivation → just start for two minutes.','Forgot → set a daily phone reminder.'];
   return `
   <button class="inline-flex items-center gap-1.5 text-sm text-[#0a6cf5] font-semibold mb-3" data-back="1">${ic('arrowL','w-4 h-4')} All missions</button>
@@ -539,7 +539,7 @@ function viewMissionDetail(slug){
   </div>
 
   <div class="card p-6 mb-4">
-    <div class="cap mb-3">Pre-test — before you begin</div>
+    <div class="cap mb-3">Pre-test, before you begin</div>
     <div class="space-y-4">
       <div><div class="text-sm font-semibold mb-2">1. How familiar are you with this skill or habit?</div>${SCALE(['Not at all','A little','Somewhat','Very'])}</div>
       <div><div class="text-sm font-semibold mb-2">2. How confident are you that you can complete this activity?</div>${SCALE(['Not confident','Slightly','Moderately','Very confident'])}</div>
@@ -573,7 +573,7 @@ function viewMissionDetail(slug){
   </div>
 
   <div class="card p-6 mb-4">
-    <div class="cap mb-3">Post-survey — after your mission</div>
+    <div class="cap mb-3">Post-survey, after your mission</div>
     <div class="space-y-4">
       <div><div class="text-sm font-semibold mb-2">1. How consistently did you complete this activity?</div>${SCALE(['Not at all','Some','Most','Every time'])}</div>
       <div><div class="text-sm font-semibold mb-2">2. How beneficial was this activity for you?</div>${SCALE(['Not','Somewhat','Beneficial','Very beneficial'])}</div>
