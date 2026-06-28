@@ -40,6 +40,12 @@
       radial-gradient(120% 90% at 85% 8%, rgba(91,165,63,.18), transparent 55%),
       radial-gradient(120% 100% at 8% 92%, rgba(10,108,245,.24), transparent 55%),
       linear-gradient(160deg,var(--navy),#07182e)}
+  /* hero background video (the gradient above stays as the pre-load / fallback backdrop) */
+  .hero-bgvideo{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; border:0; pointer-events:none}
+  .hero-scrim{position:absolute; inset:0; z-index:1; pointer-events:none; background:
+      radial-gradient(120% 90% at 85% 8%, rgba(91,165,63,.10), transparent 55%),
+      linear-gradient(160deg, rgba(8,21,42,.58) 0%, rgba(7,20,40,.80) 100%)}
+  .hero .wrap{position:relative; z-index:2}
   .hero .eyebrow{color:#8fd0ff}
   .hero h1{font-weight:800; font-size:clamp(40px,7vw,92px); margin:18px 0 22px}
   .hero p.lead{font-size:clamp(17px,1.7vw,22px); color:#b9cbe4; max-width:60ch}
@@ -100,7 +106,12 @@
 </div></nav>
 
 <!-- HERO -->
-<header class="hero" id="top"><div class="wrap">
+<header class="hero" id="top">
+  <video class="hero-bgvideo" autoplay muted loop playsinline preload="auto" aria-hidden="true">
+    <source src="assets/video/vitalityacademiesblue.mp4" type="video/mp4">
+  </video>
+  <div class="hero-scrim"></div>
+  <div class="wrap">
   <div class="eyebrow">Confidential · Physician Investment Opportunity</div>
   <h1>The medical weight-loss revolution, owned by physicians.</h1>
   <p class="lead">Vitality Academies Nevada MSO LLC operates a turnkey Management Service Organization powering physician-led medical weight loss in the high-growth Las Vegas market. An exclusive ownership opportunity for Nevada-licensed physicians.</p>
