@@ -446,6 +446,14 @@ function show(stepId){
 document.getElementById('to-sign').addEventListener('click', () => {
   if (!validate1()){ document.getElementById('err1').classList.add('show'); return; }
   document.getElementById('err1').classList.remove('show');
+  // Capture as an investor INQUIRY the instant they commit to review & sign — so they're in the CRM
+  // (Partners board) even if they bail before paying. Fire-and-forget; the same record is updated
+  // (deduped by email) at the pay step, and flips to a committed 'investor' on a successful payment.
+  const d = gather();
+  fetch(SUBSCRIBE_ENDPOINT, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ event: 'inquiry', name: d.name, email: d.email, phone: d.phone, units: d.units }),
+  }).catch(() => {});
   document.getElementById('f-typed').value = '';
   document.getElementById('f-date').value = todayStr();
   buildAgreement();
