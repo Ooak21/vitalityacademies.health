@@ -71,6 +71,11 @@
   input[type=radio]{accent-color:var(--accent)}
   input[type=checkbox]{accent-color:var(--accent)}
 </style>
+<script>
+  // Gate: the Academy is patient-only. No Vitality patient session -> go to login.
+  // (P0: same login as the Weight-Loss portal; sync check avoids a flash of the app.)
+  try { if (!localStorage.getItem('vca-vit-patient')) location.replace('academy-login.html'); } catch(_) {}
+</script>
 </head>
 <body class="min-h-screen">
 
@@ -113,9 +118,33 @@
 </footer>
 
 <script>
-const USER = { name: 'Maria' };
-document.getElementById('userName').textContent = USER.name;
-document.getElementById('avatar').textContent = USER.name.charAt(0).toUpperCase();
+const USER = { name: '' };
+// Real patient identity via the shared Vitality Convex (same login as the Weight-Loss portal).
+(async () => {
+  let first = 'there';
+  try {
+    const { getToken, STORE_PATIENT } = await import('./auth-convex.js');
+    const token = await getToken(STORE_PATIENT);
+    if (!token) { location.replace('academy-login.html'); return; }
+    const { ConvexHttpClient } = await import('https://esm.sh/convex@1.41.0/browser');
+    const cx = new ConvexHttpClient('https://quixotic-cat-492.convex.cloud');
+    cx.setAuth(token);
+    window.__vitCx = cx;                       // reused by later slices (persistence + real stats)
+    const res = await cx.query('portal:loadPortal', {});
+    window.__vitPortal = res;                  // cache real journey data for the stats slice
+    if (res && res.patient && res.patient.first) first = res.patient.first;
+  } catch (e) { /* neutral greeting on any failure */ }
+  USER.name = first;
+  const un = document.getElementById('userName'); if (un) un.textContent = first;
+  const av = document.getElementById('avatar'); if (av) av.textContent = first.charAt(0).toUpperCase();
+  // Slice 2: seed completed lessons from the patient's real Convex logs (module completions),
+  // then refresh so prior completions persist across sessions and show in the "Lessons complete" stat.
+  try {
+    const logs = (window.__vitPortal && window.__vitPortal.logs) || [];
+    logs.filter(l => l.kind === 'module').forEach(l => { const s = (l.body || '').split(':')[0].trim(); if (s) doneLessons.add(s); });
+  } catch (_) {}
+  try { if (typeof render === 'function') render(); } catch (_) {}
+})();
 const esc = (s)=> (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 /* ---------------- ICONS (inline SVG, Lucide-style) ---------------- */
@@ -459,7 +488,7 @@ function viewLessonDetail(slug){
   </div>`;
 }
 
-function submitQuiz(slug){
+async function submitQuiz(slug){
   const m = MODULES.find(x=>x.slug===slug); if(!m) return;
   let correct=0, answered=0;
   m.quiz.forEach((q,qi)=>{ const sel=document.querySelector(`input[name="q${qi}"]:checked`); if(sel){ answered++; if(+sel.value===q.answer) correct++; } });
@@ -468,6 +497,8 @@ function submitQuiz(slug){
   if (correct >= Math.ceil(m.quiz.length*0.67)){
     res.innerHTML=`<span class="text-emerald-600 font-semibold">Nice, ${correct}/${m.quiz.length} correct. +25 points.</span>`;
     doneLessons.add(slug);
+    // Persist to the shared Vitality journey (same vit_patient_logs the portal + rewards read).
+    try { if (window.__vitCx) await window.__vitCx.mutation('portal:addLog', { kind:'module', value_num: Math.round(correct/m.quiz.length*100), body: slug + ': ' + (m.title || m.sub || slug) }); } catch(_) {}
     const btn=document.getElementById('quizSubmit'); btn.disabled=true; btn.textContent='Completed';
     btn.className='w-full py-3 rounded-xl font-semibold bg-[#eaf7f0] text-[#0a7a3d]';
   } else {

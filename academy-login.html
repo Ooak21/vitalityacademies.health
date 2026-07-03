@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in · Vitality Academies</title>
+<meta name="robots" content="noindex">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:#ffffff;color:#16201d}
+  .font-display{font-family:'Montserrat','Inter',sans-serif}
+  .glow{background:radial-gradient(60% 50% at 50% 0%,rgba(10,108,245,0.08),rgba(10,108,245,0) 70%)}
+  .field{width:100%;background:#ffffff;border:1px solid #e6e9ee;border-radius:12px;padding:.8rem 1rem;color:#16201d;font-size:1rem}
+  .field:focus{outline:none;border-color:#0a6cf5;box-shadow:0 0 0 3px rgba(10,108,245,.12)}
+  .field::placeholder{color:#9aa0ab}
+</style>
+</head>
+<body class="min-h-screen flex items-center justify-center px-5">
+<div class="absolute inset-0 glow pointer-events-none"></div>
+<div class="relative z-10 w-full max-w-sm">
+  <div class="flex flex-col items-center mb-8">
+    <span class="font-display font-semibold text-2xl uppercase tracking-[.15em]">Vitality</span>
+    <span class="text-[.62rem] font-medium tracking-[.34em] uppercase text-[#0a6cf5] mt-1">Academies</span>
+  </div>
+  <form id="loginForm" class="bg-white shadow-[0_18px_44px_-22px_rgba(16,24,40,0.18)] border border-[#e6e9ee] rounded-3xl p-7">
+    <h1 class="font-display text-xl font-semibold mb-1">Sign in to your Academy</h1>
+    <p class="text-sm text-[#6b7280] mb-6">Same login as your Vitality patient portal. Your progress and real results follow you here.</p>
+    <label class="text-xs font-semibold text-[#3d4a45]">Email</label>
+    <input id="email" type="email" class="field mt-1 mb-4" placeholder="you@email.com" autocomplete="username" required>
+    <label class="text-xs font-semibold text-[#3d4a45]">Password</label>
+    <input id="password" type="password" class="field mt-1 mb-5" placeholder="••••••••" autocomplete="current-password" required>
+    <button type="submit" id="btn" class="w-full px-6 py-3 rounded-2xl bg-[#0a6cf5] text-white font-semibold hover:bg-[#0856c8] transition active:scale-[0.99]">Sign in</button>
+    <div id="err" class="text-sm text-rose-600 mt-3 hidden"></div>
+  </form>
+  <p class="text-center text-xs text-[#9aa0ab] mt-6">Vitality Academies · Las Vegas</p>
+</div>
+<script type="module">
+  const f=document.getElementById('loginForm'), err=document.getElementById('err'), btn=document.getElementById('btn');
+  f.addEventListener('submit', async (e)=>{
+    e.preventDefault(); err.classList.add('hidden'); btn.textContent='Signing in…'; btn.disabled=true;
+    const email=document.getElementById('email').value.trim(), password=document.getElementById('password').value;
+    try {
+      const { signIn, STORE_PATIENT } = await import('./auth-convex.js');
+      await signIn(email, password, STORE_PATIENT);
+      location.replace('academy.html');
+    } catch(error){
+      const raw = (error && (error.message || String(error))) || '';
+      const isAuth = /invalidaccountid|invalidsecret|invalid|account|secret|password|credential|unauthor|401/i.test(raw);
+      err.textContent = isAuth ? 'Invalid email or password.' : 'Sign in failed. Please try again.';
+      err.classList.remove('hidden'); btn.textContent='Sign in'; btn.disabled=false;
+    }
+  });
+</script>
+</body>
+</html>
