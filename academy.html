@@ -142,6 +142,13 @@ const USER = { name: '' };
   try {
     const logs = (window.__vitPortal && window.__vitPortal.logs) || [];
     logs.filter(l => l.kind === 'module').forEach(l => { const s = (l.body || '').split(':')[0].trim(); if (s) doneLessons.add(s); });
+    // Missions + onboarding next-steps both persist as kind='nextstep', namespaced by body prefix (m- / ns-)
+    // so they feed the shared PhD points without colliding with the portal's own next-step slugs.
+    logs.filter(l => l.kind === 'nextstep').forEach(l => {
+      const s = (l.body || '').split(':')[0].trim();
+      if (s.startsWith('m-')) doneMissions.add(s.slice(2));
+      else if (s.startsWith('ns-')) doneNext.add(s.slice(3));
+    });
   } catch (_) {}
   try { if (typeof render === 'function') render(); } catch (_) {}
 })();
@@ -192,13 +199,13 @@ function ic(name, cls){ return `<svg class="${cls||''}" viewBox="0 0 24 24" fill
 /* ---------------- DATA (static / mock — nothing wired) ---------------- */
 
 const NEXTSTEPS = [
-  { title:'Create your vision board', sticker:'Vision Board', icon:'image', done:true,
+  { slug:'vision', title:'Create your vision board', sticker:'Vision Board', icon:'image',
     body:'Use an 18 to 24" foam board. Add photos and sayings that capture your <b>why</b>. Leave a 1" margin around the edge for the stickers you earn, and put it where you\'ll see it daily.',
     box:`<div class="rounded-xl bg-[#f7f9fc] border border-[#eef1f6] p-4 mt-3">
           <p class="text-sm text-[#4b5563] flex items-center gap-2">${ic('sparkle','w-4 h-4 text-[#0a6cf5] shrink-0')} When it's ready, upload a photo and the team will celebrate it with you.</p>
           <button class="mt-3 seg-btn inline-flex items-center gap-1.5">${ic('upload','w-4 h-4')} Upload photo</button>
         </div>` },
-  { title:'Choose your goal object', sticker:'Daily Reminder', icon:'scale', done:true,
+  { slug:'goal-object', title:'Choose your goal object', sticker:'Daily Reminder', icon:'scale',
     body:'Pick an object equal to your goal weight loss and decorate it. Put it on your bed each morning; each night, lift it a few times and set it down, picturing life without the extra weight.',
     box:`<div class="rounded-xl bg-[#f7f9fc] border border-[#eef1f6] p-4 mt-3">
           <div class="cap mb-2.5">Suggested objects by goal</div>
@@ -209,7 +216,7 @@ const NEXTSTEPS = [
             <tr><td class="py-2 font-semibold">40 lbs</td><td class="py-2 text-[#4b5563]">Bag of water-softener salt or cement</td></tr>
           </tbody></table>
         </div>` },
-  { title:'Get your lab work done', sticker:'Labs Done', icon:'clipboard', done:true,
+  { slug:'labs', title:'Get your lab work done', sticker:'Labs Done', icon:'clipboard',
     body:'Required before starting a GLP-1 medication. Had labs in the last 3 months? Upload them instead. Need a form? We\'ll generate one.',
     box:`<div class="rounded-xl bg-[#f7f9fc] border border-[#eef1f6] p-4 mt-3">
           <div class="cap mb-2.5">Required panels</div>
@@ -222,12 +229,12 @@ const NEXTSTEPS = [
           </tbody></table>
           <div class="flex flex-wrap gap-2 mt-3"><button class="seg-btn inline-flex items-center gap-1.5">${ic('upload','w-4 h-4')} Upload lab results</button><button class="seg-btn">Request lab form</button></div>
         </div>` },
-  { title:'Gear up for movement', sticker:'Ready to Move', icon:'footprints', done:false,
+  { slug:'gear', title:'Gear up for movement', sticker:'Ready to Move', icon:'footprints',
     body:'Get the basics: good gym shoes, a swimsuit (water activities are gentle on joints), sweatpants, and a tee. Functional beats fancy.',
     box:`<label class="flex items-center gap-2.5 rounded-xl bg-[#f7f9fc] border border-[#eef1f6] p-4 mt-3 cursor-pointer text-sm">
           <input type="checkbox" class="w-4 h-4"> My exercise gear is ready to go.
         </label>` },
-  { title:'Sign your communication consent', sticker:'All Set', icon:'pen', done:false,
+  { slug:'consent', title:'Sign your communication consent', sticker:'All Set', icon:'pen',
     body:'A quick acknowledgment that email &amp; text are approved for non-urgent messages. Standard email/SMS isn\'t guaranteed HIPAA-secure and shouldn\'t be used for emergencies.',
     box:`<label class="flex items-start gap-2.5 rounded-xl bg-[#f7f9fc] border border-[#eef1f6] p-4 mt-3 cursor-pointer text-sm">
           <input type="checkbox" class="w-4 h-4 mt-0.5"> <span>I understand and authorize Vitality Weight Loss to contact me by email and/or text for scheduling, billing, and aspects of my care, unless I revoke this in writing.</span>
@@ -339,7 +346,7 @@ const MISSIONS = [
     desc:'Use a high-protein, high-fiber smoothie for one meal a day for 7 days.' },
 ];
 
-const STATS = { complete:2, streak:12, badges:2, points:320, cycleTotal:11 };
+// Stats are computed from the patient's real shared-journey logs — see statsNow() / gamify() below. Never mock.
 
 const BADGES = [
   { name:'Vision Board', icon:'image', color:'blue', earned:true },
@@ -363,25 +370,64 @@ const BADGES = [
 ];
 
 /* ---------------- TABS ---------------- */
-const nextRemaining = NEXTSTEPS.filter(s=>!s.done).length;
-const lessonsCount = MODULES.length;
-const missionsTodo = MISSIONS.filter(m=>m.status!=='complete').length;
-const doneLessons = new Set();
+// Completion state — driven by the patient's REAL shared-journey logs (seeded in the loader), never mock.
+const doneLessons  = new Set();  // module/lesson slugs   (kind='module')
+const doneMissions = new Set();  // weekly-mission slugs  (kind='nextstep', body 'm-<slug>: …')
+const doneNext     = new Set();  // onboarding-step slugs (kind='nextstep', body 'ns-<slug>: …')
+
+// Unified points/streak engine — mirrors vitalityweightloss.health rewards.html so academy + portal move the SAME needle.
+const PTS = { food:10, weigh_in:5, journal:5, activity:15, scan:10, module:25, nextstep:20 };
+function gamify(){
+  const logs = (window.__vitPortal && window.__vitPortal.logs) || [];
+  const dk = (d)=>{ const x=new Date(d); return x.getFullYear()+'-'+x.getMonth()+'-'+x.getDate(); };
+  let points=0; const dates=new Set();
+  logs.forEach(l=>{ points += PTS[l.kind]||5; if(l.logged_at) dates.add(dk(l.logged_at)); });
+  const day=86400000; let streak=0, cur=new Date();
+  if(!dates.has(dk(cur))) cur=new Date(Date.now()-day);   // allow yesterday to keep the streak alive today
+  while(dates.has(dk(cur))){ streak++; cur=new Date(cur.getTime()-day); }
+  return { points, streak };
+}
+function computeBadges(){
+  const g=gamify(), D=window.__vitPortal||{}, ib=(D.inbody||[]), logs=(D.logs||[]);
+  const missionBadge=(name)=>MISSIONS.some(m=>m.badge===name && doneMissions.has(m.slug));
+  const weightLost=(ib.length>=2 && ib[0].weight_lb!=null && ib[ib.length-1].weight_lb!=null) ? (ib[0].weight_lb-ib[ib.length-1].weight_lb) : 0;
+  const goalHit = !!(D.plan && D.plan.goal_weight && ib.length && ib[ib.length-1].weight_lb!=null && ib[ib.length-1].weight_lb<=D.plan.goal_weight);
+  const map = {
+    'Vision Board':doneNext.has('vision'), 'Daily Reminder':doneNext.has('goal-object'), 'Labs Done':doneNext.has('labs'),
+    'Ready to Move':doneNext.has('gear'), 'All Set':doneNext.has('consent'),
+    '7-Day Streak':g.streak>=7, 'First Lesson':doneLessons.size>=1,
+    'Snack Strategist':missionBadge('Snack Strategist'), 'Step Master':missionBadge('Step Master'),
+    'Gym Member':missionBadge('Gym Member'), 'Strength Builder':missionBadge('Strength Builder'), 'Cardio Champion':missionBadge('Cardio Champion'),
+    'First 10 lbs':weightLost>=10, '3 InBody Scans':ib.length>=3, 'Goal Reached':goalHit,
+    'Podcast Listener':logs.some(l=>l.kind==='podcast'), 'Partner Setup':false, 'Shared a Win':false,
+  };
+  return BADGES.map(b=>({ ...b, earned: !!map[b.name] }));
+}
+function statsNow(){
+  const g=gamify();
+  return { complete:doneMissions.size, streak:g.streak, badges:computeBadges().filter(b=>b.earned).length, points:g.points, cycleTotal:MISSIONS.length };
+}
 
 const TABLIST = [
-  { id:'results', icon:'activity', label:'My Results', count:null },
-  { id:'next', icon:'flag', label:'Next Steps', count:nextRemaining },
-  { id:'curriculum', icon:'cap', label:'Curriculum', count:lessonsCount },
-  { id:'missions', icon:'target', label:'Weekly Missions', count:missionsTodo },
-  { id:'rewards', icon:'award', label:'Rewards', count:null },
+  { id:'results', icon:'activity', label:'My Results' },
+  { id:'next', icon:'flag', label:'Next Steps' },
+  { id:'curriculum', icon:'cap', label:'Curriculum' },
+  { id:'missions', icon:'target', label:'Weekly Missions' },
+  { id:'rewards', icon:'award', label:'Rewards' },
 ];
 let activeTab = 'results';
 let openMission = null;
 let openLesson = null;
 
+function tabCount(id){
+  if (id==='next') return Math.max(0, NEXTSTEPS.length - doneNext.size);
+  if (id==='curriculum') return MODULES.length;
+  if (id==='missions') return Math.max(0, MISSIONS.length - doneMissions.size);
+  return null;
+}
 function renderTabs(){
-  document.getElementById('tabs').innerHTML = TABLIST.map(t=>
-    `<button class="tab ${t.id===activeTab?'active':''}" data-tab="${t.id}">${ic(t.icon)}${t.label}${t.count!=null?`<span class="chip">${t.count}</span>`:''}</button>`).join('');
+  document.getElementById('tabs').innerHTML = TABLIST.map(t=>{ const c=tabCount(t.id);
+    return `<button class="tab ${t.id===activeTab?'active':''}" data-tab="${t.id}">${ic(t.icon)}${t.label}${c!=null?`<span class="chip">${c}</span>`:''}</button>`;}).join('');
 }
 
 /* ---------------- VIEWS ---------------- */
@@ -434,7 +480,7 @@ function viewResults(){
 }
 
 function viewNext(){
-  const done = NEXTSTEPS.filter(s=>s.done).length, total = NEXTSTEPS.length, pct = Math.round(done/total*100);
+  const done = NEXTSTEPS.filter(s=>doneNext.has(s.slug)).length, total = NEXTSTEPS.length, pct = Math.round(done/total*100);
   return `
   <div class="card p-6 mb-4">
     <div class="flex items-start justify-between gap-4">
@@ -448,21 +494,22 @@ function viewNext(){
     <div class="h-2 rounded-full bg-[#eef1f6] mt-5 overflow-hidden"><div class="h-full grad rounded-full" style="width:${pct}%"></div></div>
   </div>
   <div class="space-y-4">
-    ${NEXTSTEPS.map(s=>`
-      <div class="card p-5 ${s.done?'bg-gradient-to-br from-white to-[#f3fbf6] border-[#d6efe0]':''}">
+    ${NEXTSTEPS.map(s=>{ const done=doneNext.has(s.slug); return `
+      <div class="card p-5 ${done?'bg-gradient-to-br from-white to-[#f3fbf6] border-[#d6efe0]':''}">
         <div class="flex items-start gap-3.5">
-          <div class="tile shrink-0 w-11 h-11 ${s.done?'grad text-white':'bg-[#f1f4f8] text-[#0a6cf5]'}">${ic(s.icon,'w-5 h-5')}</div>
+          <div class="tile shrink-0 w-11 h-11 ${done?'grad text-white':'bg-[#f1f4f8] text-[#0a6cf5]'}">${ic(s.icon,'w-5 h-5')}</div>
           <div class="flex-1 min-w-0">
             <div class="flex flex-wrap items-center gap-2">
               <h3 class="font-display font-semibold text-[16px]">${esc(s.title)}</h3>
               <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-[#b9760a] bg-[#fdf3e2] rounded-full px-2.5 py-1">${ic('star','w-3 h-3')} ${esc(s.sticker)}</span>
-              ${s.done?`<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0a7a3d] bg-[#eaf7f0] rounded-full px-2.5 py-1 ml-auto">${ic('check','w-3 h-3')} Done</span>`:''}
+              ${done?`<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0a7a3d] bg-[#eaf7f0] rounded-full px-2.5 py-1 ml-auto">${ic('check','w-3 h-3')} Done</span>`:''}
             </div>
             <p class="text-sm text-[#4b5563] mt-1.5 leading-relaxed">${s.body}</p>
             ${s.box||''}
+            ${done?'':`<button class="mt-3 inline-flex items-center gap-1.5 rounded-full grad text-white font-semibold px-4 py-2.5 text-sm" data-next-done="${s.slug}">${ic('check','w-4 h-4')} Mark this step done</button>`}
           </div>
         </div>
-      </div>`).join('')}
+      </div>`;}).join('')}
   </div>`;
 }
 
@@ -552,9 +599,25 @@ async function submitQuiz(slug){
   }
 }
 
+// Persist a weekly-mission completion to the shared Vitality journey (kind='nextstep', body 'm-<slug>: …').
+async function markMissionDone(slug, btn){
+  const m = MISSIONS.find(x=>x.slug===slug); if(!m) return;
+  if(btn){ btn.disabled=true; btn.textContent='Saving…'; }
+  try { if (window.__vitCx) await window.__vitCx.mutation('portal:addLog', { kind:'nextstep', body: 'm-'+slug+': '+(m.title||slug) }); } catch(_){}
+  doneMissions.add(slug); render();
+}
+// Persist an onboarding next-step completion (kind='nextstep', body 'ns-<slug>: …').
+async function markNextDone(slug, btn){
+  const s = NEXTSTEPS.find(x=>x.slug===slug); if(!s) return;
+  if(btn){ btn.disabled=true; btn.textContent='Saving…'; }
+  try { if (window.__vitCx) await window.__vitCx.mutation('portal:addLog', { kind:'nextstep', body: 'ns-'+slug+': '+(s.title||slug) }); } catch(_){}
+  doneNext.add(slug); render();
+}
+
 function viewMissions(){
   if (openMission) return viewMissionDetail(openMission);
   const paired = MISSIONS.find(m=>m.paired);
+  const S = statsNow();
   const statBox=(icon,v,l)=>`<div class="card p-4"><div class="flex items-center justify-between"><div class="font-display text-2xl font-semibold seg leading-none">${v}</div><span class="text-[#b7c0cd]">${icon}</span></div><div class="cap mt-2">${l}</div></div>`;
   return `
   <div class="banner p-5 mb-4">
@@ -569,18 +632,18 @@ function viewMissions(){
     </div>
   </div>
   <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-    ${statBox(ic('check','w-5 h-5'),STATS.complete,'Missions complete')}
-    ${statBox(ic('flame','w-5 h-5'),STATS.streak,'Day streak')}
-    ${statBox(ic('award','w-5 h-5'),STATS.badges,'Badges earned')}
-    ${statBox(ic('star','w-5 h-5'),STATS.points,'Points')}
+    ${statBox(ic('check','w-5 h-5'),S.complete,'Missions complete')}
+    ${statBox(ic('flame','w-5 h-5'),S.streak,'Day streak')}
+    ${statBox(ic('award','w-5 h-5'),S.badges,'Badges earned')}
+    ${statBox(ic('star','w-5 h-5'),S.points,'Points')}
   </div>
   <div class="px-1 mb-7">
-    <div class="h-2 rounded-full bg-[#eef1f6] overflow-hidden"><div class="h-full grad rounded-full" style="width:${Math.round(STATS.complete/STATS.cycleTotal*100)}%"></div></div>
-    <div class="text-xs text-[#6b7280] mt-1.5">${STATS.complete} of ${STATS.cycleTotal} missions complete this cycle</div>
+    <div class="h-2 rounded-full bg-[#eef1f6] overflow-hidden"><div class="h-full grad rounded-full" style="width:${S.cycleTotal?Math.round(S.complete/S.cycleTotal*100):0}%"></div></div>
+    <div class="text-xs text-[#6b7280] mt-1.5">${S.complete} of ${S.cycleTotal} missions complete this cycle</div>
   </div>
   <div class="cap mb-3">Your Weekly Missions</div>
   <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-    ${MISSIONS.map(m=>{const c=CAT[m.cat]||CAT.Nutrition;const done=m.status==='complete';return `
+    ${MISSIONS.map(m=>{const c=CAT[m.cat]||CAT.Nutrition;const done=doneMissions.has(m.slug);return `
       <button class="card ch p-5 text-left flex flex-col" data-open="${m.slug}">
         <div class="flex items-start justify-between">
           <div class="tile w-11 h-11 ${c.bg} ${c.tx}">${ic(m.icon,'w-5 h-5')}</div>
@@ -660,14 +723,17 @@ function viewMissionDetail(slug){
   </div>
 
   <div class="flex flex-wrap items-center gap-3">
-    <button class="inline-flex items-center gap-2 rounded-full grad text-white font-semibold px-5 py-3 text-sm">${ic('check','w-4 h-4')} Mark completed</button>
+    ${doneMissions.has(m.slug)
+      ? `<span class="inline-flex items-center gap-2 rounded-full bg-[#eaf7f0] text-[#0a7a3d] font-semibold px-5 py-3 text-sm">${ic('check','w-4 h-4')} Completed</span>`
+      : `<button class="inline-flex items-center gap-2 rounded-full grad text-white font-semibold px-5 py-3 text-sm" data-mission-done="${m.slug}">${ic('check','w-4 h-4')} Mark completed</button>`}
     <button class="rounded-full border border-[#e9edf3] bg-white font-semibold px-5 py-3 text-sm" data-back="1">Back to missions</button>
     <span class="text-sm text-[#9aa4b2]">Completing earns the <b>${esc(m.badge)}</b> badge + ${m.points} points.</span>
   </div>`;
 }
 
 function viewRewards(){
-  const got = BADGES.filter(b=>b.earned).length;
+  const CB = computeBadges();
+  const got = CB.filter(b=>b.earned).length;
   return `
   <div class="card p-6">
     <div class="flex items-start justify-between gap-4">
@@ -678,9 +744,9 @@ function viewRewards(){
       </div>
       ${ring(got,BADGES.length)}
     </div>
-    <div class="h-2 rounded-full bg-[#eef1f6] mt-5 overflow-hidden"><div class="h-full rounded-full" style="width:${Math.round(got/BADGES.length*100)}%;background:linear-gradient(90deg,#bf8f25,#f0cf6f)"></div></div>
+    <div class="h-2 rounded-full bg-[#eef1f6] mt-5 overflow-hidden"><div class="h-full rounded-full" style="width:${Math.round(got/CB.length*100)}%;background:linear-gradient(90deg,#bf8f25,#f0cf6f)"></div></div>
     <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 mt-7">
-      ${BADGES.map(b=>`
+      ${CB.map(b=>`
         <div class="rounded-2xl border p-4 flex flex-col items-center text-center ${b.earned?'bg-white border-[#eef1f6]':'bg-[#fafbfc] border-[#eef1f6]'}">
           <div class="medal ${b.earned?b.color:'locked'}">
             ${b.earned?ic(b.icon,'w-6 h-6'):ic('lock','w-5 h-5')}
@@ -717,6 +783,10 @@ document.addEventListener('click',(e)=>{
   if (open && open.getAttribute('data-open')){ activeTab='missions'; openMission = open.getAttribute('data-open'); render(); return; }
   const back = e.target.closest('[data-back]');
   if (back){ openMission=null; render(); return; }
+  const missionDone = e.target.closest('[data-mission-done]');
+  if (missionDone){ markMissionDone(missionDone.getAttribute('data-mission-done'), missionDone); return; }
+  const nextDone = e.target.closest('[data-next-done]');
+  if (nextDone){ markNextDone(nextDone.getAttribute('data-next-done'), nextDone); return; }
   const trk = e.target.closest('[data-trk]');
   if (trk){ trk.classList.toggle('on'); return; }
   const seg = e.target.closest('.scale-row .seg-btn');
