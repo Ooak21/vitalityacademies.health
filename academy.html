@@ -378,6 +378,10 @@ const doneNext     = new Set();  // onboarding-step slugs (kind='nextstep', body
 // Unified points/streak engine — mirrors vitalityweightloss.health rewards.html so academy + portal move the SAME needle.
 const PTS = { food:10, weigh_in:5, journal:5, activity:15, scan:10, module:25, nextstep:20 };
 function gamify(){
+  // Prefer the ONE canonical server engine (portal.ts computeGamification) so academy, portal, and CRM
+  // show the SAME points/streak/level. Fall back to a local compute only if the payload predates it.
+  const g = window.__vitPortal && window.__vitPortal.gamification;
+  if (g && typeof g.points === 'number') return { points:g.points, streak:g.streak||0, level:g.level, nextLevel:g.nextLevel, pointsToNext:g.pointsToNext, progressPct:g.progressPct };
   const logs = (window.__vitPortal && window.__vitPortal.logs) || [];
   const dk = (d)=>{ const x=new Date(d); return x.getFullYear()+'-'+x.getMonth()+'-'+x.getDate(); };
   let points=0; const dates=new Set();
@@ -385,7 +389,7 @@ function gamify(){
   const day=86400000; let streak=0, cur=new Date();
   if(!dates.has(dk(cur))) cur=new Date(Date.now()-day);   // allow yesterday to keep the streak alive today
   while(dates.has(dk(cur))){ streak++; cur=new Date(cur.getTime()-day); }
-  return { points, streak };
+  return { points, streak, level:null, nextLevel:null, pointsToNext:0, progressPct:0 };
 }
 function computeBadges(){
   const g=gamify(), D=window.__vitPortal||{}, ib=(D.inbody||[]), logs=(D.logs||[]);
@@ -434,6 +438,28 @@ function renderTabs(){
 
 function ring(done,total){ const pct=Math.round(done/total*100); return `<div class="text-right shrink-0"><div class="font-display text-[26px] font-bold text-[#0a6cf5] seg leading-none">${done}<span class="text-[#b7bfca]">/${total}</span></div><div class="cap mt-1">Complete</div></div>`; }
 
+// Personal Health Doctorate strip — the "graduation" ladder fed by BOTH learning and clinical work.
+function phdStrip(){
+  const g = gamify();
+  const lvl = g.level || 'Freshman';
+  const pct = g.progressPct!=null ? g.progressPct : 0;
+  const toNext = g.nextLevel ? `${g.pointsToNext} pts to ${esc(g.nextLevel)}` : 'Top of the program';
+  return `
+  <div class="banner p-5 mb-4">
+    <div class="flex items-center justify-between gap-4 flex-wrap">
+      <div class="flex items-center gap-3.5">
+        <div class="tile w-11 h-11 shrink-0" style="background:rgba(255,255,255,.16)">${ic('cap','w-5 h-5')}</div>
+        <div><div class="text-[11px] font-semibold uppercase tracking-[.14em] text-white/70">Personal Health Doctorate</div>
+          <div class="font-display font-semibold text-lg mt-0.5">${esc(lvl)}</div>
+          <div class="text-sm text-white/80 mt-0.5">${g.points||0} points earned &middot; ${toNext}</div></div>
+      </div>
+      <div class="text-right shrink-0"><div class="font-display text-2xl font-bold leading-none">${g.streak||0}<span class="text-white/60 text-base"> day</span></div>
+        <div class="text-[11px] uppercase tracking-wide text-white/70 mt-1">streak</div></div>
+    </div>
+    <div class="h-2 rounded-full bg-white/20 mt-4 overflow-hidden"><div class="h-full bg-white rounded-full" style="width:${pct}%"></div></div>
+  </div>`;
+}
+
 function viewResults(){
   const D = window.__vitPortal;
   if (!D || !D.ok || !D.patient) return `<div class="card p-8 text-center text-[#6b7280]">Loading your results&hellip;</div>`;
@@ -443,7 +469,7 @@ function viewResults(){
   const goal = plan && plan.goal_weight;
   const fmt = (n,u='') => (n==null ? '&mdash;' : (Math.round(n*10)/10)+u);
   if (!latest){
-    return `<div class="card p-8 text-center"><div class="tile w-12 h-12 bg-[#eef4ff] text-[#0a6cf5] mx-auto mb-3">${ic('activity','w-6 h-6')}</div>
+    return phdStrip() + `<div class="card p-8 text-center"><div class="tile w-12 h-12 bg-[#eef4ff] text-[#0a6cf5] mx-auto mb-3">${ic('activity','w-6 h-6')}</div>
       <h2 class="font-display text-xl font-semibold mb-1">Your results live here</h2>
       <p class="text-sm text-[#6b7280] max-w-md mx-auto">After your first InBody scan at the clinic, your body-composition numbers, plan targets, and progress show up here and update every visit.</p></div>`;
   }
@@ -452,7 +478,7 @@ function viewResults(){
     const d = Math.round((latest.weight_lb-firstScan.weight_lb)*10)/10;
     if (d!==0) delta = `<span class="${d<0?'text-emerald-600':'text-[#6b7280]'} font-semibold text-sm">${d<0?'▼':'▲'} ${Math.abs(d)} lb since your first scan</span>`;
   }
-  return `
+  return phdStrip() + `
   <div class="mb-5"><h2 class="font-display text-2xl font-semibold tracking-[-.5px]">Your results</h2>
     <p class="text-sm text-[#5b6573] mt-1">Straight from your InBody scans and care plan &mdash; the real numbers behind your learning.</p></div>
   <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
