@@ -369,12 +369,13 @@ const missionsTodo = MISSIONS.filter(m=>m.status!=='complete').length;
 const doneLessons = new Set();
 
 const TABLIST = [
+  { id:'results', icon:'activity', label:'My Results', count:null },
   { id:'next', icon:'flag', label:'Next Steps', count:nextRemaining },
   { id:'curriculum', icon:'cap', label:'Curriculum', count:lessonsCount },
   { id:'missions', icon:'target', label:'Weekly Missions', count:missionsTodo },
   { id:'rewards', icon:'award', label:'Rewards', count:null },
 ];
-let activeTab = 'next';
+let activeTab = 'results';
 let openMission = null;
 let openLesson = null;
 
@@ -386,6 +387,51 @@ function renderTabs(){
 /* ---------------- VIEWS ---------------- */
 
 function ring(done,total){ const pct=Math.round(done/total*100); return `<div class="text-right shrink-0"><div class="font-display text-[26px] font-bold text-[#0a6cf5] seg leading-none">${done}<span class="text-[#b7bfca]">/${total}</span></div><div class="cap mt-1">Complete</div></div>`; }
+
+function viewResults(){
+  const D = window.__vitPortal;
+  if (!D || !D.ok || !D.patient) return `<div class="card p-8 text-center text-[#6b7280]">Loading your results&hellip;</div>`;
+  const ib = D.inbody || [];
+  const latest = ib[ib.length-1] || null, firstScan = ib[0] || null;
+  const plan = D.plan || null, nut = (plan && plan.handbook && plan.handbook.nutrition) || {};
+  const goal = plan && plan.goal_weight;
+  const fmt = (n,u='') => (n==null ? '&mdash;' : (Math.round(n*10)/10)+u);
+  if (!latest){
+    return `<div class="card p-8 text-center"><div class="tile w-12 h-12 bg-[#eef4ff] text-[#0a6cf5] mx-auto mb-3">${ic('activity','w-6 h-6')}</div>
+      <h2 class="font-display text-xl font-semibold mb-1">Your results live here</h2>
+      <p class="text-sm text-[#6b7280] max-w-md mx-auto">After your first InBody scan at the clinic, your body-composition numbers, plan targets, and progress show up here and update every visit.</p></div>`;
+  }
+  let delta = '';
+  if (firstScan && firstScan!==latest && firstScan.weight_lb!=null && latest.weight_lb!=null){
+    const d = Math.round((latest.weight_lb-firstScan.weight_lb)*10)/10;
+    if (d!==0) delta = `<span class="${d<0?'text-emerald-600':'text-[#6b7280]'} font-semibold text-sm">${d<0?'▼':'▲'} ${Math.abs(d)} lb since your first scan</span>`;
+  }
+  return `
+  <div class="mb-5"><h2 class="font-display text-2xl font-semibold tracking-[-.5px]">Your results</h2>
+    <p class="text-sm text-[#5b6573] mt-1">Straight from your InBody scans and care plan &mdash; the real numbers behind your learning.</p></div>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+    ${statCard(ic('scale','w-5 h-5'), fmt(latest.weight_lb,' lb'), 'Current weight')}
+    ${statCard(ic('activity','w-5 h-5'), fmt(latest.pbf_pct,'%'), 'Body fat')}
+    ${statCard(ic('dumbbell','w-5 h-5'), fmt(latest.smm_lb,' lb'), 'Skeletal muscle')}
+    ${statCard(ic('heart','w-5 h-5'), (latest.visceral_fat_level==null?'&mdash;':'Lv '+latest.visceral_fat_level), 'Visceral fat')}
+  </div>
+  <div class="card p-5 mb-4">
+    <div class="flex items-center justify-between mb-3"><div class="eyebrow">Progress</div>${delta}</div>
+    <div class="grid grid-cols-3 gap-4 text-center">
+      <div><div class="font-display text-lg font-semibold seg">${fmt(firstScan&&firstScan.weight_lb,' lb')}</div><div class="cap mt-1">Start</div></div>
+      <div><div class="font-display text-lg font-semibold seg">${fmt(latest.weight_lb,' lb')}</div><div class="cap mt-1">Current</div></div>
+      <div><div class="font-display text-lg font-semibold seg text-[#0a6cf5]">${goal?fmt(goal,' lb'):'&mdash;'}</div><div class="cap mt-1">Goal</div></div>
+    </div>
+  </div>
+  ${(nut.calories||nut.protein)?`<div class="card p-5 mb-4"><div class="eyebrow mb-3">Your daily plan targets</div><div class="grid grid-cols-3 gap-4 text-center">
+      <div><div class="font-display text-lg font-semibold seg">${nut.calories||'&mdash;'}</div><div class="cap mt-1">Calories</div></div>
+      <div><div class="font-display text-lg font-semibold seg">${nut.protein?nut.protein+'g':'&mdash;'}</div><div class="cap mt-1">Protein</div></div>
+      <div><div class="font-display text-lg font-semibold seg">${latest.bmr_kcal||'&mdash;'}</div><div class="cap mt-1">BMR</div></div>
+    </div></div>`:''}
+  ${D.nextAppt?`<div class="card p-4 flex items-center gap-3.5 mb-4"><div class="tile w-10 h-10 bg-[#eef4ff] text-[#0a6cf5] shrink-0">${ic('flag','w-5 h-5')}</div>
+    <div><div class="font-semibold text-sm">Next appointment</div><div class="text-sm text-[#6b7280]">${new Date(D.nextAppt.when).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}${D.nextAppt.provider?' &middot; '+esc(D.nextAppt.provider):''}</div></div></div>`:''}
+  <p class="text-xs text-[#9aa0ab]">Your full plan, meals, and workouts live in your <a href="https://vitalityweightloss.health/portal.html" class="text-[#0a6cf5] font-semibold">patient portal</a>.</p>`;
+}
 
 function viewNext(){
   const done = NEXTSTEPS.filter(s=>s.done).length, total = NEXTSTEPS.length, pct = Math.round(done/total*100);
@@ -650,7 +696,8 @@ function viewRewards(){
 function render(){
   renderTabs();
   const v = document.getElementById('view');
-  if (activeTab==='next') v.innerHTML = viewNext();
+  if (activeTab==='results') v.innerHTML = viewResults();
+  else if (activeTab==='next') v.innerHTML = viewNext();
   else if (activeTab==='curriculum') v.innerHTML = viewCurriculum();
   else if (activeTab==='missions') v.innerHTML = viewMissions();
   else if (activeTab==='rewards') v.innerHTML = viewRewards();
