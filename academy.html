@@ -91,7 +91,7 @@
         <div class="w-8 h-8 rounded-full grad text-white text-sm font-semibold flex items-center justify-center shadow-[0_6px_14px_-6px_rgba(10,108,245,.7)]" id="avatar"></div>
         <span class="text-sm hidden sm:block"><span class="text-[#6b7280]">Hi,</span> <span id="userName" class="font-semibold"></span></span>
       </div>
-      <a href="/" class="text-xs text-[#8a93a3] hover:text-[#0b1220] ml-1">Sign out</a>
+      <a href="academy-login.html" onclick="event.preventDefault(); import('./auth-convex.js').then(function(m){ return m.signOut(m.STORE_PATIENT); }).catch(function(){}).finally(function(){ try{ localStorage.removeItem('vca-vit-patient'); }catch(_){}; location.replace('academy-login.html'); }); return false;" class="text-xs text-[#8a93a3] hover:text-[#0b1220] ml-1">Sign out</a>
     </div>
   </div>
 </header>
