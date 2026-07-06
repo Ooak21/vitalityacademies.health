@@ -267,6 +267,15 @@
     </div>
   </section>
 
+  <section class="panel hide" id="step-done">
+    <div style="text-align:center; padding:14px 4px">
+      <div style="width:56px;height:56px;border-radius:999px;background:linear-gradient(135deg,var(--green),var(--blue));color:#fff;display:grid;place-items:center;font-size:26px;margin:0 auto 16px">✓</div>
+      <h2 style="margin-bottom:8px">Payment received. Welcome aboard.</h2>
+      <p class="lede" style="max-width:520px;margin:0 auto 10px">Your Initial Fee is processed and your membership units are reserved on a first-to-execute basis. A countersigned copy of your Subscription Agreement and your Second Payment instructions (due within 30 days) are on the way by email.</p>
+      <p class="lede" style="max-width:520px;margin:0 auto">Questions? Contact us and we will take care of you.</p>
+    </div>
+  </section>
+
 </div>
 
 <script>
@@ -560,6 +569,22 @@ document.getElementById('pay-btn').addEventListener('click', async () => {
     btn.disabled = false; btn.innerHTML = label;
   }
 });
+
+/* Return from Clover hosted checkout: reflect the result instead of dumping the investor on step 1.
+   Backend redirects to subscribe.html?paid=1 (success) or ?paid=0 (failure). */
+(function(){
+  var paid = new URLSearchParams(location.search).get('paid');
+  if (paid === '1'){
+    ['step-details','step-sign','step-pay'].forEach(function(s){ var el=document.getElementById(s); if(el) el.classList.add('hide'); });
+    var done=document.getElementById('step-done'); if(done) done.classList.remove('hide');
+    document.querySelectorAll('.steps .s').forEach(function(el){ el.classList.remove('active'); el.classList.add('done'); });
+    try { window.scrollTo(0,0); } catch(e){}
+  } else if (paid === '0'){
+    show('step-pay');
+    var e3=document.getElementById('err3'); if(e3){ e3.textContent='Your payment was not completed, so your units are not yet reserved. Please try again or contact us.'; e3.classList.add('show'); }
+    try { window.scrollTo(0,0); } catch(e){}
+  }
+})();
 </script>
 </body>
 </html>
