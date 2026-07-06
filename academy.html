@@ -133,7 +133,7 @@ const USER = { name: '' };
     const res = await cx.query('portal:loadPortal', {});
     window.__vitPortal = res;                  // cache real journey data for the stats slice
     if (res && res.patient && res.patient.first) first = res.patient.first;
-  } catch (e) { /* neutral greeting on any failure */ }
+  } catch (e) { window.__vitPortal = { error: true }; /* let viewResults show an error + retry, not a perpetual spinner */ }
   USER.name = first;
   const un = document.getElementById('userName'); if (un) un.textContent = first;
   const av = document.getElementById('avatar'); if (av) av.textContent = first.charAt(0).toUpperCase();
@@ -203,7 +203,7 @@ const NEXTSTEPS = [
     body:'Use an 18 to 24" foam board. Add photos and sayings that capture your <b>why</b>. Leave a 1" margin around the edge for the stickers you earn, and put it where you\'ll see it daily.',
     box:`<div class="rounded-xl bg-[#f7f9fc] border border-[#eef1f6] p-4 mt-3">
           <p class="text-sm text-[#4b5563] flex items-center gap-2">${ic('sparkle','w-4 h-4 text-[#0a6cf5] shrink-0')} When it's ready, upload a photo and the team will celebrate it with you.</p>
-          <button class="mt-3 seg-btn inline-flex items-center gap-1.5">${ic('upload','w-4 h-4')} Upload photo</button>
+          <button class="mt-3 seg-btn inline-flex items-center gap-1.5" data-upload="photo">${ic('upload','w-4 h-4')} Upload photo</button>
         </div>` },
   { slug:'goal-object', title:'Choose your goal object', sticker:'Daily Reminder', icon:'scale',
     body:'Pick an object equal to your goal weight loss and decorate it. Put it on your bed each morning; each night, lift it a few times and set it down, picturing life without the extra weight.',
@@ -227,7 +227,7 @@ const NEXTSTEPS = [
             <tr class="border-b border-[#eef1f6]"><td class="py-2 font-semibold">Pancreas</td><td class="py-2 text-[#4b5563]">Lipase · Amylase</td></tr>
             <tr><td class="py-2 font-semibold">Other</td><td class="py-2 text-[#4b5563]">Pregnancy test (women) · Vitamin D (optional)</td></tr>
           </tbody></table>
-          <div class="flex flex-wrap gap-2 mt-3"><button class="seg-btn inline-flex items-center gap-1.5">${ic('upload','w-4 h-4')} Upload lab results</button><button class="seg-btn">Request lab form</button></div>
+          <div class="flex flex-wrap gap-2 mt-3"><button class="seg-btn inline-flex items-center gap-1.5" data-labs="upload">${ic('upload','w-4 h-4')} Upload lab results</button><button class="seg-btn" data-labs="form">Request lab form</button></div>
         </div>` },
   { slug:'gear', title:'Gear up for movement', sticker:'Ready to Move', icon:'footprints',
     body:'Get the basics: good gym shoes, a swimsuit (water activities are gentle on joints), sweatpants, and a tee. Functional beats fancy.',
@@ -462,6 +462,7 @@ function phdStrip(){
 
 function viewResults(){
   const D = window.__vitPortal;
+  if (D && D.error) return `<div class="card p-8 text-center text-[#6b7280]">We couldn't load your results just now.<br><button class="mt-3 seg-btn" data-retry-results="1">Try again</button></div>`;
   if (!D || !D.ok || !D.patient) return `<div class="card p-8 text-center text-[#6b7280]">Loading your results&hellip;</div>`;
   const ib = D.inbody || [];
   const latest = ib[ib.length-1] || null, firstScan = ib[0] || null;
@@ -551,7 +552,7 @@ function viewCurriculum(){
           <div class="font-display font-semibold text-lg mt-0.5">${esc(c.liveLesson.title)}</div>
           <div class="text-sm text-white/80 mt-0.5">${esc(c.liveLesson.when)}</div></div>
       </div>
-      <button class="glassbtn inline-flex items-center gap-2 text-sm rounded-full px-4 py-2.5 shrink-0">${ic('calendar','w-4 h-4')} Add to calendar</button>
+      <button class="glassbtn inline-flex items-center gap-2 text-sm rounded-full px-4 py-2.5 shrink-0" data-ics="live">${ic('calendar','w-4 h-4')} Add to calendar</button>
     </div>
   </div>
   <div class="grid sm:grid-cols-3 gap-3 mb-7">
@@ -614,30 +615,45 @@ async function submitQuiz(slug){
   const res = document.getElementById('quizResult');
   if (answered < m.quiz.length){ res.innerHTML='<span class="text-amber-600 font-medium">Answer every question to finish.</span>'; return; }
   if (correct >= Math.ceil(m.quiz.length*0.67)){
-    res.innerHTML=`<span class="text-emerald-600 font-semibold">Nice, ${correct}/${m.quiz.length} correct. +25 points.</span>`;
-    doneLessons.add(slug);
+    const btn=document.getElementById('quizSubmit'); const qorig=btn?btn.textContent:'';
+    if(btn){ btn.disabled=true; btn.textContent='Saving…'; }
     // Persist to the shared Vitality journey (same vit_patient_logs the portal + rewards read).
-    try { if (window.__vitCx) await window.__vitCx.mutation('portal:addLog', { kind:'module', value_num: Math.round(correct/m.quiz.length*100), body: slug + ': ' + (m.title || m.sub || slug) }); } catch(_) {}
-    const btn=document.getElementById('quizSubmit'); btn.disabled=true; btn.textContent='Completed';
-    btn.className='w-full py-3 rounded-xl font-semibold bg-[#eaf7f0] text-[#0a7a3d]';
+    // Only show "Completed" if it actually saved — otherwise the +25 points would not persist.
+    let ok=false;
+    try { if (window.__vitCx){ await window.__vitCx.mutation('portal:addLog', { kind:'module', value_num: Math.round(correct/m.quiz.length*100), body: slug + ': ' + (m.title || m.sub || slug) }); ok=true; } } catch(_) { ok=false; }
+    if(ok){
+      res.innerHTML=`<span class="text-emerald-600 font-semibold">Nice, ${correct}/${m.quiz.length} correct. +25 points.</span>`;
+      doneLessons.add(slug);
+      if(btn){ btn.disabled=true; btn.textContent='Completed'; btn.className='w-full py-3 rounded-xl font-semibold bg-[#eaf7f0] text-[#0a7a3d]'; }
+    } else {
+      if(btn){ btn.disabled=false; btn.textContent=qorig||'Finish lesson'; }
+      res.innerHTML='<span class="text-rose-600 font-semibold">Could not save your progress. Please check your connection and try again.</span>';
+    }
   } else {
     res.innerHTML=`<span class="text-rose-600 font-semibold">${correct}/${m.quiz.length} correct. Review the lesson and try again.</span>`;
   }
 }
 
 // Persist a weekly-mission completion to the shared Vitality journey (kind='nextstep', body 'm-<slug>: …').
+// Only mark done if the save actually persisted — otherwise the badge would lie and vanish on reload.
 async function markMissionDone(slug, btn){
   const m = MISSIONS.find(x=>x.slug===slug); if(!m) return;
+  const orig = btn ? btn.textContent : '';
   if(btn){ btn.disabled=true; btn.textContent='Saving…'; }
-  try { if (window.__vitCx) await window.__vitCx.mutation('portal:addLog', { kind:'nextstep', body: 'm-'+slug+': '+(m.title||slug) }); } catch(_){}
-  doneMissions.add(slug); render();
+  let ok=false;
+  try { if (window.__vitCx){ await window.__vitCx.mutation('portal:addLog', { kind:'nextstep', body: 'm-'+slug+': '+(m.title||slug) }); ok=true; } } catch(_){ ok=false; }
+  if(ok){ doneMissions.add(slug); render(); }
+  else { if(btn){ btn.disabled=false; btn.textContent=orig||'Mark completed'; } alert('We could not save that just now. Please check your connection and try again.'); }
 }
 // Persist an onboarding next-step completion (kind='nextstep', body 'ns-<slug>: …').
 async function markNextDone(slug, btn){
   const s = NEXTSTEPS.find(x=>x.slug===slug); if(!s) return;
+  const orig = btn ? btn.textContent : '';
   if(btn){ btn.disabled=true; btn.textContent='Saving…'; }
-  try { if (window.__vitCx) await window.__vitCx.mutation('portal:addLog', { kind:'nextstep', body: 'ns-'+slug+': '+(s.title||slug) }); } catch(_){}
-  doneNext.add(slug); render();
+  let ok=false;
+  try { if (window.__vitCx){ await window.__vitCx.mutation('portal:addLog', { kind:'nextstep', body: 'ns-'+slug+': '+(s.title||slug) }); ok=true; } } catch(_){ ok=false; }
+  if(ok){ doneNext.add(slug); render(); }
+  else { if(btn){ btn.disabled=false; btn.textContent=orig||'Mark this step done'; } alert('We could not save that just now. Please check your connection and try again.'); }
 }
 
 function viewMissions(){
@@ -817,7 +833,69 @@ document.addEventListener('click',(e)=>{
   if (trk){ trk.classList.toggle('on'); return; }
   const seg = e.target.closest('.scale-row .seg-btn');
   if (seg){ [...seg.parentElement.querySelectorAll('.seg-btn')].forEach(b=>b.classList.remove('sel')); seg.classList.add('sel'); return; }
+  const ics = e.target.closest('[data-ics]');
+  if (ics){ addLessonToCalendar(); return; }
+  const up = e.target.closest('[data-upload]');
+  if (up){ startAcademyPhotoUpload(up); return; }
+  const labs = e.target.closest('[data-labs]');
+  if (labs){ handleLabs(labs.getAttribute('data-labs'), labs); return; }
+  const retryR = e.target.closest('[data-retry-results]');
+  if (retryR){ retryResults(); return; }
 });
+async function retryResults(){ try{ if(window.__vitCx){ window.__vitPortal = await window.__vitCx.query('portal:loadPortal', {}); } else { window.__vitPortal={error:true}; } }catch(e){ window.__vitPortal={error:true}; } render(); }
+
+/* ---- wired actions for the previously-dead buttons (photo upload, labs, add-to-calendar) ---- */
+// Phone-photo pipeline (mirrors the portal): HEIC -> JPEG + downscale so phone uploads never jam.
+let __heicPromise=null;
+function ensureHeic2any(){ if(window.heic2any) return Promise.resolve(window.heic2any); if(__heicPromise) return __heicPromise;
+  __heicPromise=new Promise((res)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js'; s.onload=()=>res(window.heic2any||null); s.onerror=()=>res(null); document.head.appendChild(s); }); return __heicPromise; }
+function reencodeToJpeg(blob,maxPx){ return new Promise((resolve)=>{ const url=URL.createObjectURL(blob); const img=new Image(); img.onload=()=>{ let w=img.naturalWidth,h=img.naturalHeight; const scale=Math.min(1,maxPx/Math.max(w,h)); w=Math.max(1,Math.round(w*scale)); h=Math.max(1,Math.round(h*scale)); const c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); URL.revokeObjectURL(url); c.toBlob((b)=>resolve(b?new File([b],'photo.jpg',{type:'image/jpeg'}):null),'image/jpeg',0.88); }; img.onerror=()=>{ URL.revokeObjectURL(url); resolve(null); }; img.src=url; }); }
+async function toUploadableImage(file){ let working=file; const isHeic=/heic|heif/i.test(file.type||'')||/\.(heic|heif)$/i.test(file.name||''); if(isHeic){ const heic=await ensureHeic2any(); if(heic){ try{ const out=await heic({blob:file,toType:'image/jpeg',quality:0.9}); working=new File([Array.isArray(out)?out[0]:out],'photo.jpg',{type:'image/jpeg'}); }catch(e){} } } try{ const jpeg=await reencodeToJpeg(working,1600); if(jpeg&&jpeg.size>0) return jpeg; }catch(e){} return working; }
+const __acFile=document.createElement('input'); __acFile.type='file'; __acFile.accept='image/*,.heic,.heif'; __acFile.style.display='none'; document.body.appendChild(__acFile);
+async function startAcademyPhotoUpload(btn){
+  if(!window.__vitCx){ alert('Please sign in again to upload.'); return; }
+  __acFile.value='';
+  __acFile.onchange=async()=>{
+    const f=__acFile.files&&__acFile.files[0]; if(!f) return;
+    if(f.size>30*1024*1024){ alert('That photo is too large (30MB max).'); return; }
+    const orig=btn?btn.innerHTML:''; if(btn){ btn.disabled=true; btn.textContent='Uploading…'; }
+    try{
+      const up=await window.__vitCx.mutation('portal:photoUploadUrl',{});
+      const url=up&&(up.uploadUrl||up.url); if(!url) throw new Error('no url');
+      const upFile=(await toUploadableImage(f))||f;
+      const res=await fetch(url,{method:'POST',headers:{'Content-Type':upFile.type||'image/jpeg'},body:upFile});
+      const j=await res.json(); if(!res.ok||!j.storageId) throw new Error('upload failed');
+      await window.__vitCx.mutation('portal:addLog',{kind:'photo',body:j.storageId});
+      if(btn){ btn.disabled=false; btn.innerHTML=orig; }
+      alert('Photo uploaded. It is saved to your Vitality portal for your care team to see.');
+    }catch(e){ if(btn){ btn.disabled=false; btn.innerHTML=orig; } alert('Upload failed. Please try again.'); }
+  };
+  __acFile.click();
+}
+// Labs: no patient lab-document pipeline exists yet, so route the intent to the care team via secure
+// messaging (they follow up). Honest MVP; full patient lab upload + provider review is a separate build.
+async function handleLabs(kind,btn){
+  if(!window.__vitCx){ alert('Please sign in again to reach your care team.'); return; }
+  const msg = kind==='form' ? 'Requested via the Academy: please send me a lab requisition form for the required panels.' : 'Sent via the Academy: I have recent lab results to share. Please let me know the best way to send them securely.';
+  const orig=btn?btn.textContent:''; if(btn){ btn.disabled=true; btn.textContent='Sending…'; }
+  try{ const r=await window.__vitCx.mutation('portal:sendMessage',{body:msg}); if(!(r&&r.ok)) throw new Error('failed'); if(btn){ btn.disabled=false; btn.textContent=orig; } alert(kind==='form'?'Your care team has been asked to send your lab form. Watch your portal messages.':'Your care team has been notified and will send you a secure way to submit your labs. Watch your portal messages.'); }
+  catch(e){ if(btn){ btn.disabled=false; btn.textContent=orig; } alert('Could not reach your care team just now. Please try again.'); }
+}
+// Add-to-calendar: best-effort .ics from the live-lesson title + date string (floating local time).
+function addLessonToCalendar(){
+  const c=(typeof CURRICULUM!=='undefined'&&CURRICULUM.liveLesson)||{}; const title=c.title||'Vitality live lesson'; const when=c.when||'';
+  const months={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  const md=when.match(/([A-Z][a-z]{2})\s+(\d{1,2})/); const tm=when.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  let start=null;
+  if(md&&months[md[1]]!=null){ let hh=19,mm=0; if(tm){ hh=(+tm[1]%12)+(/pm/i.test(tm[3])?12:0); mm=+tm[2]; } start=new Date(new Date().getFullYear(),months[md[1]],+md[2],hh,mm,0); }
+  if(!start){ start=new Date(); start.setDate(start.getDate()+1); start.setHours(19,0,0,0); }
+  const end=new Date(start.getTime()+60*60000);
+  const pad=n=>String(n).padStart(2,'0');
+  const fmt=d=>d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'T'+pad(d.getHours())+pad(d.getMinutes())+'00';
+  const esc2=s=>String(s).replace(/([,;\\])/g,'\\$1').replace(/\n/g,' ');
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Vitality Academies//Live Lesson//EN','BEGIN:VEVENT','UID:vitality-'+start.getTime()+'@vitalityacademies.health','DTSTAMP:'+fmt(new Date()),'DTSTART:'+fmt(start),'DTEND:'+fmt(end),'SUMMARY:'+esc2(title),'DESCRIPTION:'+esc2(when),'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const blob=new Blob([ics],{type:'text/calendar'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='vitality-live-lesson.ics'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
 
 render();
 </script>
