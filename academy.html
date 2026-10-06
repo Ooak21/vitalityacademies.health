@@ -301,7 +301,8 @@ const MODULES = [
 ];
 
 const CURRICULUM = {
-  liveLesson:{ title:'Protein & Muscle', when:'Live class Thu, Jun 25 · 7:00 PM PT · with Richard DeVera, NP' },
+  // The banner shows only until `ends`; set title/when/ends for the next live class and it comes back.
+  liveLesson:{ title:'Protein & Muscle', when:'Live class Thu, Jun 25 · 7:00 PM PT · with Richard DeVera, NP', ends:'2026-06-25T21:00:00-07:00' },
   phases:[
     { name:'Phase 1 · Nutrition & Medication', slugs:['nutrition','glp1','label','protein'] },
     { name:'Phase 2 · Movement & Recovery', slugs:['mobility','sleep'] },
@@ -550,8 +551,9 @@ function viewNext(){
 function viewCurriculum(){
   if (openLesson) return viewLessonDetail(openLesson);
   const c = CURRICULUM;
+  const live = c.liveLesson && (!c.liveLesson.ends || Date.now() < Date.parse(c.liveLesson.ends));
   return `
-  <div class="banner p-5 mb-4">
+  ${live?`<div class="banner p-5 mb-4">
     <div class="flex items-center justify-between gap-4 flex-wrap">
       <div class="flex items-center gap-3.5">
         <div class="tile w-11 h-11 shrink-0" style="background:rgba(255,255,255,.16)">${ic('cap','w-5 h-5')}</div>
@@ -561,7 +563,7 @@ function viewCurriculum(){
       </div>
       <button class="glassbtn inline-flex items-center gap-2 text-sm rounded-full px-4 py-2.5 shrink-0" data-ics="live">${ic('calendar','w-4 h-4')} Add to calendar</button>
     </div>
-  </div>
+  </div>`:''}
   <div class="grid sm:grid-cols-3 gap-3 mb-7">
     ${statCard(ic('book','w-5 h-5'), currDone()+' / '+CURR_LESSONS.length, 'Lessons complete')}
     ${statCard(ic('headphones','w-5 h-5'), CURR.length+' phases', 'A podcast with every lesson')}
