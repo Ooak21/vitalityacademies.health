@@ -117,6 +117,7 @@
   <p class="text-[12px] text-[#9aa4b2]">Vitality Academies · the learning home for every Vitality patient. This program supports, and does not replace, the guidance of your care team.</p>
 </footer>
 
+<script src="curriculum-data.js?v=20261006"></script>
 <script>
 const USER = { name: '' };
 // Real patient identity via the shared Vitality Convex (same login as the Weight-Loss portal).
@@ -307,6 +308,12 @@ const CURRICULUM = {
   ]
 };
 
+// Fred's curriculum (10/5): phases + lessons live in curriculum-data.js. Each lesson = podcast, overview,
+// key takeaways and the full lesson; it is completed with "Mark lesson complete" (no quiz in this curriculum).
+const CURR = (window.VITALITY_CURRICULUM && window.VITALITY_CURRICULUM.phases) || [];
+const CURR_LESSONS = CURR.flatMap(p => p.lessons.map(L => ({ ...L, phase: p })));
+const currDone = () => CURR_LESSONS.filter(L => doneLessons.has(L.slug)).length;
+
 const CAT = {
   Nutrition:{ bg:'bg-[#eaf7f0]', tx:'text-[#179a52]' },
   Fitness:{ bg:'bg-[#e8f1ff]', tx:'text-[#0a6cf5]' },
@@ -425,7 +432,7 @@ let openLesson = null;
 
 function tabCount(id){
   if (id==='next') return Math.max(0, NEXTSTEPS.length - doneNext.size);
-  if (id==='curriculum') return MODULES.length;
+  if (id==='curriculum') return Math.max(0, CURR_LESSONS.length - currDone());
   if (id==='missions') return Math.max(0, MISSIONS.length - doneMissions.size);
   return null;
 }
@@ -556,27 +563,26 @@ function viewCurriculum(){
     </div>
   </div>
   <div class="grid sm:grid-cols-3 gap-3 mb-7">
-    ${statCard(ic('book','w-5 h-5'), doneLessons.size+' / '+MODULES.length, 'Lessons complete')}
-    ${statCard(ic('play','w-5 h-5'), '3 each', 'Lessons per module')}
-    ${statCard(ic('check','w-5 h-5'), 'Quiz', 'To lock it in')}
+    ${statCard(ic('book','w-5 h-5'), currDone()+' / '+CURR_LESSONS.length, 'Lessons complete')}
+    ${statCard(ic('headphones','w-5 h-5'), CURR.length+' phases', 'A podcast with every lesson')}
+    ${statCard(ic('star','w-5 h-5'), '+25', 'Points per lesson')}
   </div>
   <div class="eyebrow mb-1">Personal Health Degree</div>
-  <p class="text-sm text-[#5b6573] mb-5 max-w-2xl">Each lesson is a short read with a quick quiz to lock in what you learn. Lessons are the education; Weekly Missions are where you put them into action.</p>
-  ${c.phases.map(p=>`
-    <div class="cap mt-6 mb-2.5">${esc(p.name)}</div>
+  <p class="text-sm text-[#5b6573] mb-5 max-w-2xl">Each lesson has a short podcast, the key takeaways, and the full lesson to read. Lessons are the education; Weekly Missions are where you put them into action.</p>
+  ${CURR.map(p=>{ const n=p.lessons.filter(L=>doneLessons.has(L.slug)).length; return `
+    <div class="flex items-baseline justify-between mt-6 mb-2.5"><div class="cap">Phase ${p.num} · ${esc(p.name)}</div><div class="text-[11px] text-[#9aa0ab]">${n} / ${p.lessons.length} complete</div></div>
     <div class="card divide-y divide-[#eef1f6] overflow-hidden">
-      ${p.slugs.map(slug=>{ const m=MODULES.find(x=>x.slug===slug); if(!m) return ''; const isDone=doneLessons.has(slug); return `
-        <button class="w-full text-left p-4 flex items-center gap-3.5 hover:bg-[#fafbfd] transition" data-lesson="${m.slug}">
-          <div class="tile shrink-0 w-11 h-11 ${isDone?'grad text-white':'bg-[#eef4ff] text-[#0a6cf5]'}">${isDone?ic('check','w-5 h-5'):ic(m.icon,'w-5 h-5')}</div>
+      ${p.lessons.map(L=>{ const isDone=doneLessons.has(L.slug); return `
+        <button class="w-full text-left p-4 flex items-center gap-3.5 hover:bg-[#fafbfd] transition" data-lesson="${L.slug}">
+          <div class="tile shrink-0 w-11 h-11 font-display font-semibold text-sm ${isDone?'grad text-white':'bg-[#eef4ff] text-[#0a6cf5]'}">${isDone?ic('check','w-5 h-5'):String(L.num).padStart(2,'0')}</div>
           <div class="flex-1 min-w-0">
-            <div class="font-display font-semibold text-[15px]">${esc(m.title)}</div>
-            <div class="text-sm text-[#6b7280]">${esc(m.sub)}</div>
+            <div class="font-display font-semibold text-[15px]">${esc(L.title)}</div>
+            <div class="text-sm text-[#6b7280] truncate">${esc(L.podcast.title)}</div>
           </div>
           ${isDone?`<span class="inline-flex items-center gap-1 shrink-0 text-[11px] font-semibold text-[#0a7a3d] bg-[#eaf7f0] rounded-full px-2.5 py-1">${ic('check','w-3 h-3')} Completed</span>`
                   :`<span class="shrink-0 text-[#0a6cf5]">${ic('arrowR','w-4 h-4')}</span>`}
         </button>`;}).join('')}
-    </div>`).join('')}
-  <div class="card p-5 mt-6 text-center text-sm text-[#6b7280]">More lessons drop in here as the full curriculum is uploaded. Each keeps this same read-and-quiz structure.</div>`;
+    </div>`; }).join('')}`;
 }
 
 function statCard(icon, big, label){
@@ -586,7 +592,56 @@ function statCard(icon, big, label){
   </div>`;
 }
 
+function viewCurrLesson(L){
+  const isDone = doneLessons.has(L.slug);
+  const i = CURR_LESSONS.findIndex(x=>x.slug===L.slug), next = CURR_LESSONS[i+1];
+  return `
+  <button class="inline-flex items-center gap-1.5 text-sm text-[#0a6cf5] font-semibold mb-3" data-lesson-back="1">${ic('arrowL','w-4 h-4')} All lessons</button>
+  <div class="card p-5 mb-4 flex items-center gap-3.5">
+    <div class="tile grad text-white w-12 h-12 shrink-0 font-display font-semibold">${String(L.num).padStart(2,'0')}</div>
+    <div class="min-w-0"><div class="cap">Phase ${L.phase.num} · ${esc(L.phase.name)} · Lesson ${L.num}</div><h2 class="font-display text-xl font-semibold mt-0.5">${esc(L.title)}</h2>${L.headline?`<div class="text-sm text-[#6b7280]">${esc(L.headline)}</div>`:''}</div>
+  </div>
+  <div class="card p-5 mb-4">
+    <div class="flex items-center gap-2.5 mb-3"><div class="tile w-9 h-9 bg-[#eef4ff] text-[#0a6cf5] shrink-0">${ic('headphones','w-4 h-4')}</div><div><div class="eyebrow">Podcast</div><div class="font-display font-semibold text-[15px]">${esc(L.podcast.title)}</div></div></div>
+    <audio controls preload="none" src="${esc(L.podcast.src)}" class="w-full"></audio>
+  </div>
+  <div class="card p-6 mb-4">
+    <div class="eyebrow mb-2">Overview</div>
+    <p class="text-sm text-[#3d4a5c] leading-relaxed mb-5">${esc(L.overview)}</p>
+    <div class="eyebrow mb-2">Key takeaways</div>
+    <ul class="space-y-2">${L.takeaways.map(t=>`<li class="flex gap-2.5 text-sm text-[#3d4a5c]"><span class="text-[#0a6cf5] mt-0.5 shrink-0">${ic('check','w-4 h-4')}</span><span>${esc(t)}</span></li>`).join('')}</ul>
+  </div>
+  ${L.sections.length?`<div class="card p-6 mb-4">
+    <div class="eyebrow mb-4">The full lesson</div>
+    <div class="space-y-5">${L.sections.map(S=>`<div>${S.heading?`<h3 class="font-display font-semibold text-[15px] mb-1.5">${esc(S.heading)}</h3>`:''}${S.paras.map(t=>`<p class="text-sm text-[#3d4a5c] leading-relaxed mb-2">${esc(t)}</p>`).join('')}</div>`).join('')}</div>
+  </div>`:''}
+  <div class="card p-5">
+    <div id="lessonResult" class="text-sm mb-3"></div>
+    <button id="lessonDone" data-slug="${L.slug}" class="w-full py-3 rounded-xl font-semibold ${isDone?'bg-[#eaf7f0] text-[#0a7a3d]':'grad text-white'}" ${isDone?'disabled':''}>${isDone?'Completed':'Mark lesson complete · +25 points'}</button>
+    ${next?`<button class="w-full mt-2 py-2.5 rounded-xl text-sm font-semibold text-[#0a6cf5] hover:bg-[#f4f7ff]" data-lesson="${next.slug}">Next: ${esc(next.title)} ${ic('arrowR','w-3.5 h-3.5 inline')}</button>`:''}
+  </div>`;
+}
+
+// Same save path as a passed quiz (kind 'module', body '<slug>: <title>'), so points, badges and the portal count it.
+// The button is updated in place so a playing podcast keeps playing.
+async function markLessonDone(slug, btn){
+  const L = CURR_LESSONS.find(x=>x.slug===slug); if(!L) return;
+  const res = document.getElementById('lessonResult');
+  btn.disabled=true; btn.textContent='Saving…';
+  let ok=false;
+  try { if (window.__vitCx){ await window.__vitCx.mutation('portal:addLog', { kind:'module', value_num:100, body: slug+': '+L.title }); ok=true; } } catch(_) { ok=false; }
+  if(ok){
+    doneLessons.add(slug);
+    btn.textContent='Completed'; btn.className='w-full py-3 rounded-xl font-semibold bg-[#eaf7f0] text-[#0a7a3d]';
+    if(res) res.innerHTML='<span class="text-emerald-600 font-semibold">Lesson complete. +25 points.</span>';
+  } else {
+    btn.disabled=false; btn.textContent='Mark lesson complete · +25 points';
+    if(res) res.innerHTML='<span class="text-rose-600 font-semibold">Could not save your progress. Please check your connection and try again.</span>';
+  }
+}
+
 function viewLessonDetail(slug){
+  const L = CURR_LESSONS.find(x=>x.slug===slug); if(L) return viewCurrLesson(L);
   const m = MODULES.find(x=>x.slug===slug); if(!m) return viewCurriculum();
   const isDone = doneLessons.has(slug);
   return `
@@ -819,6 +874,8 @@ document.addEventListener('click',(e)=>{
   if (lesson && lesson.getAttribute('data-lesson')){ activeTab='curriculum'; openLesson = lesson.getAttribute('data-lesson'); render(); return; }
   const lessonBack = e.target.closest('[data-lesson-back]');
   if (lessonBack){ openLesson=null; render(); return; }
+  const lessonDone = e.target.closest('#lessonDone');
+  if (lessonDone && !lessonDone.disabled){ markLessonDone(lessonDone.getAttribute('data-slug'), lessonDone); return; }
   const quizSubmit = e.target.closest('#quizSubmit');
   if (quizSubmit && !quizSubmit.disabled){ const f=document.getElementById('quizForm'); if(f) submitQuiz(f.getAttribute('data-quiz')); return; }
   const open = e.target.closest('[data-open]');
