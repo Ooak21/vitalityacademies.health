@@ -154,6 +154,17 @@ const USER = { name: '' };
       else if (s.startsWith('ns-')) doneNext.add(s.slice(3));
     });
   } catch (_) {}
+  // Mission sheets this patient already filled in (academy:missionSheets), so their answers come back.
+  // A sheet edited before this arrives is kept as typed, not overwritten.
+  try {
+    if (window.__vitCx) {
+      const r = await window.__vitCx.query('academy:missionSheets', {});
+      ((r && r.sheets) || []).forEach(s => {
+        if (SHEETS[s.slug]) return;
+        try { SHEETS[s.slug] = JSON.parse(s.data) || {}; SHEET_SAVED_AT[s.slug] = s.updated_at; } catch (_) {}
+      });
+    }
+  } catch (_) {}
   try { if (typeof render === 'function') render(); } catch (_) {}
 })();
 const esc = (s)=> (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -787,21 +798,68 @@ function docBox(tone, title, blocks){
   if (objective) return `<div class="doc-box rounded-xl bg-[#eef4ff] text-[#1a3a6b] p-4 text-sm leading-relaxed mb-4"><div class="font-semibold mb-1.5 flex items-center gap-2">${ic('target','w-4 h-4 text-[#0a6cf5]')} ${title}</div>${blocks.map(docBlock).join('')}</div>`;
   return `<div class="doc-box ${t.box} text-sm mb-3">${title?`<div class="font-semibold ${t.tx} mb-1.5 flex items-start gap-2">${ic(t.icon,'w-4 h-4 shrink-0 mt-0.5')}<span>${title}</span></div>`:''}${blocks.map(docBlock).join('')}</div>`;
 }
+// Mission sheets save to the patient's Vitality record (academy:saveMissionSheet -> vit_mission_sheets), one JSON
+// object per mission. A field's key is a hash of its label (the question, or table + row + column) plus how many
+// times that label has appeared, so a saved answer only ever comes back on the same field.
+const SHEETS = {};                 // slug -> { key: value }; loaded at boot from academy:missionSheets
+const SHEET_SAVED_AT = {};         // slug -> time of the last confirmed save
+const sheetTimers = {};
+let SHEET_CUR = {}, SHEET_SEEN = {};
+function sheetKey(label){
+  const t = String(label).replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+  let h = 5381; for (let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0;
+  const base = h.toString(36); SHEET_SEEN[base] = (SHEET_SEEN[base]||0) + 1;
+  return base + '.' + SHEET_SEEN[base];
+}
+function sheetStatus(text, retry){
+  const el = document.getElementById('sheetStatus');
+  if (el) el.innerHTML = esc(text) + (retry ? ` <button class="text-[#0a6cf5] font-semibold" data-sheet-retry="1">Try again</button>` : '');
+}
+function sheetSet(el){
+  const k = el && el.getAttribute('data-k'); if (!k || !openMission) return;
+  const slug = openMission, s = SHEETS[slug] || (SHEETS[slug] = {});
+  let val;
+  if (el.classList.contains('trk')) val = el.classList.contains('on') ? 1 : null;
+  else if (el.classList.contains('scale-row')) { const b = el.querySelector('.seg-btn.sel'); val = b ? b.textContent : null; }
+  else val = el.value.slice(0, 2000);
+  if (val == null || val === '') delete s[k]; else s[k] = val;
+  clearTimeout(sheetTimers[slug]);
+  sheetStatus('Saving…');
+  sheetTimers[slug] = setTimeout(() => saveSheet(slug), 700);
+}
+async function saveSheet(slug){
+  clearTimeout(sheetTimers[slug]); delete sheetTimers[slug];
+  const show = (t, retry) => { if (openMission === slug) sheetStatus(t, retry); };
+  if (!window.__vitCx) return show('Not saved: we could not reach your Vitality record.', true);
+  try {
+    const r = await window.__vitCx.mutation('academy:saveMissionSheet', { slug, data: JSON.stringify(SHEETS[slug] || {}) });
+    SHEET_SAVED_AT[slug] = (r && r.updated_at) || Date.now();
+    show('Saved to your Vitality record');
+  } catch (e) {
+    show(/no patient/i.test(String(e && e.message)) ? 'Not saved: this login is not linked to a Vitality patient record.' : 'Not saved. Check your connection.', true);
+  }
+}
+function sheetFlush(){ Object.keys(sheetTimers).forEach(saveSheet); }
+
 function docTable(b){
   const checkCols = b.head.map(h=>DOC_CHECK.test(h.replace(/<[^>]+>/g,'').trim()));
   const hasCheck = checkCols.some(Boolean);
-  const cell = (x,ci)=>{
+  const tsig = 't|' + b.head.join('|') + '|';
+  const cell = (x,ci,r)=>{
+    const row = (r[0] && r[0].h) || '';
     if (x.h!=null){
-      if (b.log && ci===0 && !hasCheck && /^(Day )?\d+$/.test(x.h)) return `<td class="px-3 py-2"><button class="trk${x.h.length>2?' px-2.5 whitespace-nowrap':''}" style="${x.h.length>2?'width:auto':''}" data-trk="${x.h}">${x.h}</button></td>`;
+      if (b.log && ci===0 && !hasCheck && /^(Day )?\d+$/.test(x.h)) { const k = sheetKey(tsig + row + '|#');
+        return `<td class="px-3 py-2"><button class="trk${SHEET_CUR[k]?' on':''}${x.h.length>2?' px-2.5 whitespace-nowrap':''}" style="${x.h.length>2?'width:auto':''}" data-trk="${x.h}" data-k="${k}">${x.h}</button></td>`; }
       return `<td class="px-3 py-2 align-top text-[#4b5563]">${x.h}</td>`;
     }
     if (!b.log) return `<td class="px-3 py-2"></td>`;
-    if (checkCols[ci]) return `<td class="px-3 py-2"><button class="trk" data-trk="${ci}"></button></td>`;
-    return `<td class="px-2 py-1.5"><input class="w-full min-w-[96px] rounded-lg border border-[#e9edf3] px-2.5 py-1.5 text-sm outline-none focus:border-[#0a6cf5]" placeholder="${esc(x.fill||'')}"></td>`;
+    const k = sheetKey(tsig + row + '|' + b.head[ci]);
+    if (checkCols[ci]) return `<td class="px-3 py-2"><button class="trk${SHEET_CUR[k]?' on':''}" data-trk="${ci}" data-k="${k}"></button></td>`;
+    return `<td class="px-2 py-1.5"><input class="w-full min-w-[96px] rounded-lg border border-[#e9edf3] px-2.5 py-1.5 text-sm outline-none focus:border-[#0a6cf5]" placeholder="${esc(x.fill||'')}" maxlength="200" data-k="${k}" value="${esc(SHEET_CUR[k]||'')}"></td>`;
   };
   return `<div class="overflow-x-auto rounded-xl border border-[#e9edf3] mb-4"><table class="w-full text-sm">
     <thead class="bg-[#f5f7fa] text-left"><tr>${b.head.map(h=>`<th class="px-3 py-2 text-xs font-semibold text-[#5b6573] align-bottom">${h}</th>`).join('')}</tr></thead>
-    <tbody>${b.rows.map(r=>`<tr class="border-t border-[#f1f4f8]">${r.map(cell).join('')}</tr>`).join('')}</tbody></table></div>`;
+    <tbody>${b.rows.map(r=>`<tr class="border-t border-[#f1f4f8]">${r.map((x,ci)=>cell(x,ci,r)).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 function docBlock(b){
   switch (b.t){
@@ -810,8 +868,10 @@ function docBlock(b){
       : b.lv===3 ? `<div class="font-semibold mt-4 mb-2">${b.h}</div>` : `<div class="text-sm font-semibold mt-3 mb-1.5">${b.h}</div>`;
     case 'ul': return `<ul class="text-sm text-[#4b5563] space-y-2 list-disc pl-5 mb-3">${b.items.map(i=>`<li${i.lv?` style="margin-left:${i.lv*18}px"`:''}>${i.h}</li>`).join('')}</ul>`;
     case 'quote': return `<blockquote class="border-l-[3px] border-[#0a6cf5] bg-[#f5f9ff] pl-3.5 pr-3 py-2.5 mb-4 text-sm italic text-[#1a3a6b] rounded-r-lg">${b.h}<div class="not-italic text-xs text-[#6b7280] mt-1">${b.cite}</div></blockquote>`;
-    case 'q': return `<div class="mb-4">${b.q?`<div class="text-sm font-semibold mb-2">${b.q}</div>`:''}${SCALE(b.opts.map(esc))}</div>`;
-    case 'prompt': return `<div class="mb-4"><div class="text-sm font-semibold mb-2">${b.q}</div><textarea rows="2" placeholder="Your answer…" class="w-full rounded-xl border border-[#e9edf3] p-3 text-sm focus:border-[#0a6cf5] outline-none"></textarea></div>`;
+    case 'q': { const k = sheetKey('q|' + (b.q||'') + '|' + b.opts.join('/'));
+      return `<div class="mb-4">${b.q?`<div class="text-sm font-semibold mb-2">${b.q}</div>`:''}<div class="flex flex-wrap gap-2 scale-row" data-k="${k}">${b.opts.map(o=>`<button class="seg-btn${SHEET_CUR[k]===o?' sel':''}">${esc(o)}</button>`).join('')}</div></div>`; }
+    case 'prompt': { const k = sheetKey('p|' + b.q);
+      return `<div class="mb-4"><div class="text-sm font-semibold mb-2">${b.q}</div><textarea rows="2" placeholder="Your answer…" maxlength="2000" data-k="${k}" class="w-full rounded-xl border border-[#e9edf3] p-3 text-sm focus:border-[#0a6cf5] outline-none">${esc(SHEET_CUR[k]||'')}</textarea></div>`; }
     case 'callout': return docBox(b.tone, b.title, b.blocks);
     case 'cols': return b.cols.every(c=>!c.blocks.length)
       ? `<p class="text-sm font-semibold text-[#4b5563] mb-3">${b.cols.map(c=>c.title).join(' · ')}</p>`
@@ -829,11 +889,14 @@ function docBlock(b){
   return '';
 }
 function missionDoc(m){
+  SHEET_CUR = SHEETS[m.slug] || {}; SHEET_SEEN = {};
+  const saved = SHEET_SAVED_AT[m.slug];
+  const status = `<div id="sheetStatus" class="text-xs text-[#9aa4b2] mb-3 px-1">${saved ? 'Saved to your Vitality record · last saved ' + esc(new Date(saved).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})) : 'What you tap, pick and type on this sheet saves to your Vitality record as you go.'}</div>`;
   const h = m.doc.header || {};
   const extra = h.t==='header' ? h.lines.slice(/MISSION$/.test(h.kicker)?1:2) : [];
   const meta = (h.meta||[]).length ? `<div class="grid sm:grid-cols-3 gap-3 mb-4">${h.meta.map(([k,v])=>`<div class="card p-4"><div class="cap">${esc(k)}</div><div class="text-sm font-semibold mt-1.5">${esc(v)}</div></div>`).join('')}</div>` : '';
   return meta + extra.map(t=>`<p class="text-sm text-[#5b6573] mb-4 px-1">${esc(t)}</p>`).join('') + m.doc.sections.map(s=>`
-  <div class="card p-6 mb-4">${s.title ? (s.kind==='content' ? `<h3 class="font-display font-semibold text-lg mb-3">${s.title}</h3>` : `<div class="cap mb-3">${s.title}</div>`) : ''}${s.blocks.map(docBlock).join('')}</div>`).join('');
+  <div class="card p-6 mb-4">${s.title ? (s.kind==='content' ? `<h3 class="font-display font-semibold text-lg mb-3">${s.title}</h3>` : `<div class="cap mb-3">${s.title}</div>`) : ''}${s.blocks.map(docBlock).join('')}</div>`).join('') + status;
 }
 
 function viewMissionDetail(slug){
@@ -962,15 +1025,17 @@ document.addEventListener('click',(e)=>{
   const open = e.target.closest('[data-open]');
   if (open && open.getAttribute('data-open')){ activeTab='missions'; openMission = open.getAttribute('data-open'); render(); return; }
   const back = e.target.closest('[data-back]');
-  if (back){ openMission=null; render(); return; }
+  if (back){ sheetFlush(); openMission=null; render(); return; }
   const missionDone = e.target.closest('[data-mission-done]');
-  if (missionDone){ markMissionDone(missionDone.getAttribute('data-mission-done'), missionDone); return; }
+  if (missionDone){ sheetFlush(); markMissionDone(missionDone.getAttribute('data-mission-done'), missionDone); return; }
+  const sheetRetry = e.target.closest('[data-sheet-retry]');
+  if (sheetRetry && openMission){ sheetStatus('Saving…'); saveSheet(openMission); return; }
   const nextDone = e.target.closest('[data-next-done]');
   if (nextDone){ markNextDone(nextDone.getAttribute('data-next-done'), nextDone); return; }
   const trk = e.target.closest('[data-trk]');
-  if (trk){ trk.classList.toggle('on'); return; }
+  if (trk){ trk.classList.toggle('on'); sheetSet(trk); return; }
   const seg = e.target.closest('.scale-row .seg-btn');
-  if (seg){ [...seg.parentElement.querySelectorAll('.seg-btn')].forEach(b=>b.classList.remove('sel')); seg.classList.add('sel'); return; }
+  if (seg){ [...seg.parentElement.querySelectorAll('.seg-btn')].forEach(b=>b.classList.remove('sel')); seg.classList.add('sel'); sheetSet(seg.parentElement); return; }
   const ics = e.target.closest('[data-ics]');
   if (ics){ addLessonToCalendar(); return; }
   const up = e.target.closest('[data-upload]');
@@ -980,6 +1045,9 @@ document.addEventListener('click',(e)=>{
   const retryR = e.target.closest('[data-retry-results]');
   if (retryR){ retryResults(); return; }
 });
+// Typing in a mission sheet's log fields and written answers saves the same way taps do; leaving the page saves now.
+document.addEventListener('input', (e) => { const el = e.target.closest && e.target.closest('input[data-k], textarea[data-k]'); if (el) sheetSet(el); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') sheetFlush(); });
 async function retryResults(){ try{ if(window.__vitCx){ window.__vitPortal = await window.__vitCx.query('portal:loadPortal', {}); } else { window.__vitPortal={error:true}; } }catch(e){ window.__vitPortal={error:true}; } render(); }
 
 /* ---- wired actions for the previously-dead buttons (photo upload, labs, add-to-calendar) ---- */
