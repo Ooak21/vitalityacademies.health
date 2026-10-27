@@ -49,6 +49,8 @@
   .trk{width:40px;height:40px;border-radius:11px;border:1px solid var(--line);background:#fff;font-size:13px;color:var(--soft);cursor:pointer;transition:all .12s;font-weight:600}
   .trk:hover{border-color:var(--accent)}
   .trk.on{background:linear-gradient(135deg,#1f9d57,#43c97f);border-color:transparent;color:#fff;box-shadow:0 8px 16px -8px rgba(31,157,87,.6)}
+  /* mission doc boxes (callouts, steps) */
+  .doc-box>:last-child{margin-bottom:0}
   /* icon tile + medallion */
   .tile{display:flex;align-items:center;justify-content:center;border-radius:13px}
   .tile svg{width:20px;height:20px}
@@ -118,6 +120,7 @@
 </footer>
 
 <script src="curriculum-data.js?v=20261006"></script>
+<script src="missions-data.js?v=20261027"></script>
 <script>
 const USER = { name: '' };
 // Real patient identity via the shared Vitality Convex (same login as the Weight-Loss portal).
@@ -353,6 +356,14 @@ const MISSIONS = [
   { slug:'smoothie', icon:'cup', title:'Smoothie Week · A Healthy Meal Daily', cat:'Nutrition', dur:'1 week', tracker:7, badge:'Snack Strategist', points:50, status:'todo',
     desc:'Use a high-protein, high-fiber smoothie for one meal a day for 7 days.' },
 ];
+
+// Dr. DeBry's detailed task docs (missions-data.js) fill each mission's detail page and add the workout series
+// plus two movement missions, in his flowchart order. The list above stays the fallback if that file does not load.
+(function(){
+  const D = window.VITALITY_MISSIONS; if (!D) return;
+  D.missions.forEach(d => { const m = MISSIONS.find(x=>x.slug===d.slug); if (m) m.doc = d.doc; else MISSIONS.push(d); });
+  MISSIONS.sort((a,b) => D.order.indexOf(a.slug) - D.order.indexOf(b.slug));
+})();
 
 // Stats are computed from the patient's real shared-journey logs — see statsNow() / gamify() below. Never mock.
 
@@ -760,15 +771,75 @@ function viewMissions(){
 
 function SCALE(opts){ return `<div class="flex flex-wrap gap-2 scale-row">${opts.map(o=>`<button class="seg-btn">${o}</button>`).join('')}</div>`; }
 
+// One of Dr. DeBry's task docs (missions-data.js): his sections in his order, each in a card. Block html was
+// escaped at build time; plain-text fields (options, header lines/meta, tags) are escaped here.
+const DOC_TONE = {
+  info:{ box:'border-l-[3px] border-[#0a6cf5] bg-[#f5f9ff] pl-3.5 pr-3 py-2.5 rounded-r-lg', tx:'text-[#1a3a6b]', icon:'flag' },
+  amber:{ box:'rounded-xl bg-[#fdf6e7] p-4', tx:'text-[#b9760a]', icon:'alert' },
+  red:{ box:'rounded-xl bg-[#fdeef0] p-4', tx:'text-[#d23a52]', icon:'alert' },
+  green:{ box:'rounded-xl bg-[#eaf7f0] p-4', tx:'text-[#0a7a3d]', icon:'bulb' },
+  plain:{ box:'rounded-xl border border-[#e9edf3] p-4', tx:'text-[#1f2937]', icon:'flag' },
+};
+const DOC_CHECK = /^(set\s*\d+|sun|mon|tue|wed|thu|fri|sat)/i;
+function docBox(tone, title, blocks){
+  const t = DOC_TONE[tone]||DOC_TONE.plain;
+  const objective = tone==='info' && /objective/i.test(title||'');
+  if (objective) return `<div class="doc-box rounded-xl bg-[#eef4ff] text-[#1a3a6b] p-4 text-sm leading-relaxed mb-4"><div class="font-semibold mb-1.5 flex items-center gap-2">${ic('target','w-4 h-4 text-[#0a6cf5]')} ${title}</div>${blocks.map(docBlock).join('')}</div>`;
+  return `<div class="doc-box ${t.box} text-sm mb-3">${title?`<div class="font-semibold ${t.tx} mb-1.5 flex items-start gap-2">${ic(t.icon,'w-4 h-4 shrink-0 mt-0.5')}<span>${title}</span></div>`:''}${blocks.map(docBlock).join('')}</div>`;
+}
+function docTable(b){
+  const checkCols = b.head.map(h=>DOC_CHECK.test(h.replace(/<[^>]+>/g,'').trim()));
+  const hasCheck = checkCols.some(Boolean);
+  const cell = (x,ci)=>{
+    if (x.h!=null){
+      if (b.log && ci===0 && !hasCheck && /^(Day )?\d+$/.test(x.h)) return `<td class="px-3 py-2"><button class="trk${x.h.length>2?' px-2.5 whitespace-nowrap':''}" style="${x.h.length>2?'width:auto':''}" data-trk="${x.h}">${x.h}</button></td>`;
+      return `<td class="px-3 py-2 align-top text-[#4b5563]">${x.h}</td>`;
+    }
+    if (!b.log) return `<td class="px-3 py-2"></td>`;
+    if (checkCols[ci]) return `<td class="px-3 py-2"><button class="trk" data-trk="${ci}"></button></td>`;
+    return `<td class="px-2 py-1.5"><input class="w-full min-w-[96px] rounded-lg border border-[#e9edf3] px-2.5 py-1.5 text-sm outline-none focus:border-[#0a6cf5]" placeholder="${esc(x.fill||'')}"></td>`;
+  };
+  return `<div class="overflow-x-auto rounded-xl border border-[#e9edf3] mb-4"><table class="w-full text-sm">
+    <thead class="bg-[#f5f7fa] text-left"><tr>${b.head.map(h=>`<th class="px-3 py-2 text-xs font-semibold text-[#5b6573] align-bottom">${h}</th>`).join('')}</tr></thead>
+    <tbody>${b.rows.map(r=>`<tr class="border-t border-[#f1f4f8]">${r.map(cell).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+function docBlock(b){
+  switch (b.t){
+    case 'p': return `<p class="text-sm ${b.muted?'text-[#6b7280] italic':'text-[#4b5563]'} leading-relaxed mb-3">${b.h}</p>`;
+    case 'h': return b.lv<=2 ? `<h4 class="font-display font-semibold text-[15px] mt-5 mb-2">${b.h}</h4>`
+      : b.lv===3 ? `<div class="font-semibold mt-4 mb-2">${b.h}</div>` : `<div class="text-sm font-semibold mt-3 mb-1.5">${b.h}</div>`;
+    case 'ul': return `<ul class="text-sm text-[#4b5563] space-y-2 list-disc pl-5 mb-3">${b.items.map(i=>`<li${i.lv?` style="margin-left:${i.lv*18}px"`:''}>${i.h}</li>`).join('')}</ul>`;
+    case 'quote': return `<blockquote class="border-l-[3px] border-[#0a6cf5] bg-[#f5f9ff] pl-3.5 pr-3 py-2.5 mb-4 text-sm italic text-[#1a3a6b] rounded-r-lg">${b.h}<div class="not-italic text-xs text-[#6b7280] mt-1">${b.cite}</div></blockquote>`;
+    case 'q': return `<div class="mb-4">${b.q?`<div class="text-sm font-semibold mb-2">${b.q}</div>`:''}${SCALE(b.opts.map(esc))}</div>`;
+    case 'prompt': return `<div class="mb-4"><div class="text-sm font-semibold mb-2">${b.q}</div><textarea rows="2" placeholder="Your answer…" class="w-full rounded-xl border border-[#e9edf3] p-3 text-sm focus:border-[#0a6cf5] outline-none"></textarea></div>`;
+    case 'callout': return docBox(b.tone, b.title, b.blocks);
+    case 'cols': return b.cols.every(c=>!c.blocks.length)
+      ? `<p class="text-sm font-semibold text-[#4b5563] mb-3">${b.cols.map(c=>c.title).join(' · ')}</p>`
+      : `<div class="grid sm:grid-cols-2 gap-3 mb-3">${b.cols.map(c=>docBox(c.tone, c.title, c.blocks).replace(' mb-3"','"')).join('')}</div>`;
+    case 'step': return `<div class="flex items-start gap-3 mb-4"><div class="tile shrink-0 w-7 h-7 grad text-white text-xs font-bold">${esc(b.n)}</div><div class="doc-box pt-0.5 min-w-0"><div class="text-sm font-semibold mb-1">${b.title||''}</div>${b.blocks.map(docBlock).join('')}</div></div>`;
+    case 'exercise': {
+      const num = /^\d+$/.test(b.tag);
+      return `<div class="rounded-xl border border-[#e9edf3] p-4 mb-3"><div class="flex items-start gap-3 mb-2.5">
+        <div class="tile shrink-0 w-9 h-9 grad text-white text-xs font-bold">${num?esc(b.tag):ic(b.tag?'heart':'flame','w-4 h-4')}</div>
+        <div class="min-w-0">${b.tag&&!num?`<div class="cap">${esc(b.tag)}</div>`:''}<div class="font-semibold text-[15px] leading-snug">${b.name||''}</div>${b.meta.map(x=>`<div class="text-xs text-[#6b7280] mt-0.5">${x.h||''}</div>`).join('')}</div></div>
+        <div class="doc-box">${b.blocks.map(docBlock).join('')}</div></div>`;
+    }
+    case 'table': return docTable(b);
+  }
+  return '';
+}
+function missionDoc(m){
+  const h = m.doc.header || {};
+  const extra = h.t==='header' ? h.lines.slice(/MISSION$/.test(h.kicker)?1:2) : [];
+  const meta = (h.meta||[]).length ? `<div class="grid sm:grid-cols-3 gap-3 mb-4">${h.meta.map(([k,v])=>`<div class="card p-4"><div class="cap">${esc(k)}</div><div class="text-sm font-semibold mt-1.5">${esc(v)}</div></div>`).join('')}</div>` : '';
+  return meta + extra.map(t=>`<p class="text-sm text-[#5b6573] mb-4 px-1">${esc(t)}</p>`).join('') + m.doc.sections.map(s=>`
+  <div class="card p-6 mb-4">${s.title ? (s.kind==='content' ? `<h3 class="font-display font-semibold text-lg mb-3">${s.title}</h3>` : `<div class="cap mb-3">${s.title}</div>`) : ''}${s.blocks.map(docBlock).join('')}</div>`).join('');
+}
+
 function viewMissionDetail(slug){
   const m = MISSIONS.find(x=>x.slug===slug); if(!m) return viewMissions();
   const c = CAT[m.cat]||CAT.Nutrition;
-  const mission = m.mission || m.desc;
-  const why = m.why || 'Building this habit reinforces the lesson it is paired with and compounds with your other missions. Small, repeatable actions are what make weight loss stick for life.';
-  const steps = m.steps || ['Read the mission and decide when you will do it.','Set a realistic minimum you can hit even on a busy day.','Log each session in the tracker below.','Stack it onto an existing routine so it sticks.'];
-  const tips = m.tips || ['Start smaller than feels necessary. Consistency beats intensity.','Pair it with something you already do daily.','Loop in your accountability partner.'];
-  const obstacles = m.obstacles || ['No time → shrink the session, never skip entirely.','Low motivation → just start for two minutes.','Forgot → set a daily phone reminder.'];
-  return `
+  const head = `
   <button class="inline-flex items-center gap-1.5 text-sm text-[#0a6cf5] font-semibold mb-3" data-back="1">${ic('arrowL','w-4 h-4')} All missions</button>
   <div class="card p-5 mb-4 flex items-center gap-3.5">
     <div class="tile w-12 h-12 ${c.bg} ${c.tx} shrink-0">${ic(m.icon,'w-6 h-6')}</div>
@@ -776,7 +847,22 @@ function viewMissionDetail(slug){
       <h2 class="font-display text-xl font-semibold mt-1.5">${esc(m.title)}</h2>
       <div class="text-sm text-[#6b7280]">${m.dur} · earns the <b>${esc(m.badge)}</b> badge</div></div>
   </div>
-
+`;
+  const foot = `
+  <div class="flex flex-wrap items-center gap-3">
+    ${doneMissions.has(m.slug)
+      ? `<span class="inline-flex items-center gap-2 rounded-full bg-[#eaf7f0] text-[#0a7a3d] font-semibold px-5 py-3 text-sm">${ic('check','w-4 h-4')} Completed</span>`
+      : `<button class="inline-flex items-center gap-2 rounded-full grad text-white font-semibold px-5 py-3 text-sm" data-mission-done="${m.slug}">${ic('check','w-4 h-4')} Mark completed</button>`}
+    <button class="rounded-full border border-[#e9edf3] bg-white font-semibold px-5 py-3 text-sm" data-back="1">Back to missions</button>
+    <span class="text-sm text-[#9aa4b2]">Completing earns the <b>${esc(m.badge)}</b> badge + ${m.points} points.</span>
+  </div>`;
+  if (m.doc) return head + missionDoc(m) + foot;
+  const mission = m.mission || m.desc;
+  const why = m.why || 'Building this habit reinforces the lesson it is paired with and compounds with your other missions. Small, repeatable actions are what make weight loss stick for life.';
+  const steps = m.steps || ['Read the mission and decide when you will do it.','Set a realistic minimum you can hit even on a busy day.','Log each session in the tracker below.','Stack it onto an existing routine so it sticks.'];
+  const tips = m.tips || ['Start smaller than feels necessary. Consistency beats intensity.','Pair it with something you already do daily.','Loop in your accountability partner.'];
+  const obstacles = m.obstacles || ['No time → shrink the session, never skip entirely.','Low motivation → just start for two minutes.','Forgot → set a daily phone reminder.'];
+  return head + `
   <div class="card p-6 mb-4">
     <div class="cap mb-3">Pre-test, before you begin</div>
     <div class="space-y-4">
@@ -820,14 +906,7 @@ function viewMissionDetail(slug){
       <div><div class="text-sm font-semibold mb-2">4. What did you learn, and what would help you keep this habit?</div><textarea rows="2" placeholder="Your reflection…" class="w-full rounded-xl border border-[#e9edf3] p-3 text-sm focus:border-[#0a6cf5] outline-none"></textarea></div>
     </div>
   </div>
-
-  <div class="flex flex-wrap items-center gap-3">
-    ${doneMissions.has(m.slug)
-      ? `<span class="inline-flex items-center gap-2 rounded-full bg-[#eaf7f0] text-[#0a7a3d] font-semibold px-5 py-3 text-sm">${ic('check','w-4 h-4')} Completed</span>`
-      : `<button class="inline-flex items-center gap-2 rounded-full grad text-white font-semibold px-5 py-3 text-sm" data-mission-done="${m.slug}">${ic('check','w-4 h-4')} Mark completed</button>`}
-    <button class="rounded-full border border-[#e9edf3] bg-white font-semibold px-5 py-3 text-sm" data-back="1">Back to missions</button>
-    <span class="text-sm text-[#9aa4b2]">Completing earns the <b>${esc(m.badge)}</b> badge + ${m.points} points.</span>
-  </div>`;
+` + foot;
 }
 
 function viewRewards(){
