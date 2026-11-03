@@ -54,6 +54,28 @@ export async function signUp(email, password, storeKey){
   return t.token;
 }
 
+// Self-service password reset. Same Password account as the patient portal and Thrive.
+// Step 1 emails a one-time code. A missing account is swallowed so the screen does not say which emails exist.
+export async function requestPasswordReset(email){
+  const c = await newClient();
+  try {
+    await c.action('auth:signIn', { provider:'password', params:{ email, flow:'reset' } });
+  } catch(e){
+    if(!/InvalidAccountId/i.test((e && e.message) || '')) throw e;
+  }
+  return true;
+}
+
+// Step 2 checks the code and sets the new password. On success the patient is signed in.
+export async function confirmPasswordReset(email, code, newPassword, storeKey){
+  const c = await newClient();
+  const res = await c.action('auth:signIn', { provider:'password', params:{ email, code, newPassword, flow:'reset-verification' } });
+  const t = res && res.tokens;
+  if(!t || !t.token) throw new Error('That code was not valid. Request a new one and try again.');
+  if(storeKey) write(storeKey, t);
+  return t.token;
+}
+
 // Return a valid access token, refreshing if near expiry. Null if no/expired session that can't refresh.
 export async function getToken(storeKey){
   const stored = read(storeKey);
